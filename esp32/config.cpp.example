@@ -1,0 +1,6 @@
+#include "config.h"
+
+const char* SSID = "your-wifi-name";
+const char* PASSWORD = "your-wifi-password";
+const char* URL = "http://192.168.0.10:5119";
+const char* DEVICE_KEY = "device-key-from-server-settings";
