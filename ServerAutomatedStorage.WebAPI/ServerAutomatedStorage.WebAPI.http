@@ -1,0 +1,6 @@
+@ServerAutomatedStorage.WebAPI_HostAddress = http://localhost:5037
+
+GET {{ServerAutomatedStorage.WebAPI_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

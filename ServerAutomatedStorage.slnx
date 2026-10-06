@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/Solution Items/">
+    <File Path=".gitignore" />
+    <File Path="README.md" />
+  </Folder>
+  <Project Path="ServerAutomatedStorage.Application/ServerAutomatedStorage.Application.csproj" />
+  <Project Path="ServerAutomatedStorage.Domain/ServerAutomatedStorage.Domain.csproj" />
+  <Project Path="ServerAutomatedStorage.Infrastructure/ServerAutomatedStorage.Infrastructure.csproj" />
+  <Project Path="ServerAutomatedStorage.WebAPI/ServerAutomatedStorage.WebAPI.csproj" />
+</Solution>
