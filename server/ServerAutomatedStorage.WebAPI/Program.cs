@@ -3,6 +3,7 @@ using ServerAutomatedStorage.Application;
 using ServerAutomatedStorage.Infrastructure;
 using ServerAutomatedStorage.WebAPI.Middleware;
 using System.Text.Json.Serialization;
+using ServerAutomatedStorage.Infrastructure.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -19,6 +20,8 @@ builder.Services.AddControllers(options =>
     .AddJsonOptions(options =>
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 builder.Services.AddOpenApi();
+builder.Services.AddHealthChecks().AddDbContextCheck<AppDbContext>();
+    
 
 var app = builder.Build();
 
@@ -34,5 +37,6 @@ if (app.Environment.IsDevelopment())
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHealthChecks("/health");
 
 app.Run();
