@@ -1,0 +1,22 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Text;
+using System.Globalization;
+using System.Reflection;
+using Microsoft.Extensions.DependencyInjection;
+using FluentValidation;
+
+namespace ServerAutomatedStorage.Application
+{
+    public static class DependencyInjection
+    {
+        public static IServiceCollection AddApplication(this IServiceCollection services)
+        {
+            var assembly = Assembly.GetExecutingAssembly();
+            services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(assembly));
+            ValidatorOptions.Global.LanguageManager.Culture = new CultureInfo("ru");
+            services.AddValidatorsFromAssembly(assembly);
+            return services;
+        }
+    }
+}
