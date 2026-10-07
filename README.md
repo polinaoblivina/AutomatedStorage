@@ -12,6 +12,7 @@
 ## Настройки для разработки
 Нужен PostgreSQL. Строка подключения хранится в user-secrets (не в git). Выполнить из корня репозитория:
 
-``
+```
     dotnet user-secrets set "ConnectionStrings:Postgres" "Host=localhost;Port=5432;Database=smartstorage;Username=postgres;Password=..." --project server/ServerAutomatedStorage.WebAPI
-``
+    dotnet user-secrets set "Seed:AdminPassword" "..." --project server/ServerAutomatedStorage.WebAPI
+```

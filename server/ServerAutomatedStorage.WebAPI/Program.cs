@@ -25,6 +25,9 @@ builder.Services.AddHealthChecks().AddDbContextCheck<AppDbContext>();
 
 var app = builder.Build();
 
+if (app.Environment.IsDevelopment())
+    await app.Services.InitialiseDatabaseAsync();
+
 app.UseExceptionHandler();
 app.UseStatusCodePages();
 
