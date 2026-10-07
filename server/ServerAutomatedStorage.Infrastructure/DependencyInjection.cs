@@ -17,7 +17,10 @@ namespace ServerAutomatedStorage.Infrastructure
             var connectionString = configuration.GetConnectionString("Postgres") ?? throw new InvalidOperationException("Connection string 'Postgres' is not configured.");
 
             services.AddDbContext<AppDbContext>(options => options.UseNpgsql(connectionString));
+
             services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
+            services.AddScoped<ICabinetRepository, CabinetRepository>();
+
             services.AddScoped<IUnitOfWork, UnitOfWork>();
 
             return services;
