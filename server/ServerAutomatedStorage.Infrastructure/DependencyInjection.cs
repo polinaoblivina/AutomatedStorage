@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using ServerAutomatedStorage.Domain.Interfaces;
+using ServerAutomatedStorage.Infrastructure.Identity;
 using ServerAutomatedStorage.Infrastructure.Persistence;
 using ServerAutomatedStorage.Infrastructure.Persistence.Repositories;
 using System;
@@ -22,6 +23,18 @@ namespace ServerAutomatedStorage.Infrastructure
             services.AddScoped<ICabinetRepository, CabinetRepository>();
 
             services.AddScoped<IUnitOfWork, UnitOfWork>();
+
+            services.AddIdentityCore<ApplicationUser>(options =>
+            {
+                options.Password.RequiredLength = 6;
+                options.Password.RequireDigit = false;
+                options.Password.RequireLowercase = false;
+                options.Password.RequireUppercase = false;
+                options.Password.RequireNonAlphanumeric = false;
+                options.User.RequireUniqueEmail = true;
+            })
+            .AddEntityFrameworkStores<AppDbContext>()
+            .AddErrorDescriber<RussianIdentityErrorDescriber>();
 
             return services;
         }
