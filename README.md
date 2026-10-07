@@ -9,7 +9,9 @@
 | `server/` | Сервер и API | ASP.NET Core, Clean Architecture (Domain / Application / Infrastructure / WebAPI) |
 | `esp32/` | Прошивка контроллера шкафа | ESP32, MFRC522, HX711, SSD1306 |
 
-## Ветки
+## Настройки для разработки
+Нужен PostgreSQL. Строка подключения хранится в user-secrets (не в git). Выполнить из корня репозитория:
 
-- `main` — всегда рабочая версия всех частей.
-- Каждая задача делается в отдельной ветке от `main` и вливается обратно через merge: `feature/...`, `fix/...`, `chore/...`.
+``
+    dotnet user-secrets set "ConnectionStrings:Postgres" "Host=localhost;Port=5432;Database=smartstorage;Username=postgres;Password=..." --project server/ServerAutomatedStorage.WebAPI
+``
