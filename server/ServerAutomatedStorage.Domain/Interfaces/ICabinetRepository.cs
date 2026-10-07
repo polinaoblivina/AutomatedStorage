@@ -8,6 +8,6 @@ namespace ServerAutomatedStorage.Domain.Interfaces
     public interface ICabinetRepository : IRepository<Cabinet>
     {
         Task<Cabinet?> GetWithCellsAsync(Guid id, CancellationToken ct = default);
-        Task<IReadOnlyList<Cabinet>> GatAllWithCellsAsync(CancellationToken ct = default);
+        Task<IReadOnlyList<Cabinet>> GetAllWithCellsAsync(CancellationToken ct = default);
     }
 }

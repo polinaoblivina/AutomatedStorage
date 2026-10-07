@@ -13,7 +13,7 @@ namespace ServerAutomatedStorage.Application.Features.Cabinets.Queries
     {
         public async Task<IReadOnlyList<CabinetDTO>> Handle(GetCabinetsQuery request, CancellationToken cancellationToken)
         {
-            var cabinets = await cabinetRepository.GatAllWithCellsAsync(cancellationToken);
+            var cabinets = await cabinetRepository.GetAllWithCellsAsync(cancellationToken);
             return cabinets.Select(CabinetDTO.From).ToList();
         }
     }

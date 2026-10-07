@@ -13,12 +13,12 @@ namespace ServerAutomatedStorage.Infrastructure.Persistence.Repositories
         {
             return await DbSet
                         .Include(c => c.Cells)
-                        .ThenInclude(Cell => Cell.Item)
+                        .ThenInclude(cell => cell.Item)
                         .FirstOrDefaultAsync(c => c.Id == id, ct);
 
         }
 
-        async Task<IReadOnlyList<Cabinet>> ICabinetRepository.GatAllWithCellsAsync(CancellationToken ct)
+        public async Task<IReadOnlyList<Cabinet>> GetAllWithCellsAsync(CancellationToken ct)
         {
             return await DbSet
                          .AsNoTracking()
