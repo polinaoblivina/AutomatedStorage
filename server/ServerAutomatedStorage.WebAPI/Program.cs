@@ -5,6 +5,7 @@ using ServerAutomatedStorage.Infrastructure;
 using ServerAutomatedStorage.Infrastructure.Persistence;
 using ServerAutomatedStorage.WebAPI.Authorization;
 using ServerAutomatedStorage.WebAPI.Middleware;
+using ServerAutomatedStorage.WebAPI.OpenApi;
 using ServerAutomatedStorage.WebAPI.Services;
 using System.Text.Json.Serialization;
 
@@ -26,7 +27,7 @@ builder.Services.AddControllers(options =>
     options.SuppressImplicitRequiredAttributeForNonNullableReferenceTypes = true)
     .AddJsonOptions(options =>
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
-builder.Services.AddOpenApi();
+builder.Services.AddOpenApi(options => options.AddDocumentTransformer<BearerSecuritySchemeTransformer>());
 builder.Services.AddHealthChecks().AddDbContextCheck<AppDbContext>();
     
 

@@ -1,11 +1,15 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using ServerAutomatedStorage.Application.Features.Cabinets.Commands;
 using ServerAutomatedStorage.Application.Features.Cabinets.DTOs;
 using ServerAutomatedStorage.Application.Features.Cabinets.Queries;
+using ServerAutomatedStorage.Domain.Enums;
+using ServerAutomatedStorage.WebAPI.Authorization;
 using ServerAutomatedStorage.WebAPI.Contracts;
 
 namespace ServerAutomatedStorage.WebAPI.Controllers
 {
+    [Authorize]
     public sealed class CabinetsController : ApiControllerBase
     {
         [HttpGet]
@@ -20,6 +24,7 @@ namespace ServerAutomatedStorage.WebAPI.Controllers
             => Ok(await Sender.Send(new GetCabinetByIdQuery(id), ct));
 
         [HttpPost]
+        [HasPermission(Permission.ManageSystem)]
         [ProducesResponseType<CabinetDTO>(StatusCodes.Status201Created)]
         [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
         public async Task<ActionResult<CabinetDTO>> Create(CreateCabinetCommand command, CancellationToken ct)
@@ -29,6 +34,7 @@ namespace ServerAutomatedStorage.WebAPI.Controllers
         }
 
         [HttpPut("{id:guid}")]
+        [HasPermission(Permission.ManageSystem)]
         [ProducesResponseType<CabinetDTO>(StatusCodes.Status200OK)]
         [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
         [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
@@ -36,6 +42,7 @@ namespace ServerAutomatedStorage.WebAPI.Controllers
             => Ok(await Sender.Send(new UpdateCabinetCommand(id, request.Name, request.Location), ct));
 
         [HttpDelete("{id:guid}")]
+        [HasPermission(Permission.ManageSystem)]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
         [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
@@ -46,6 +53,7 @@ namespace ServerAutomatedStorage.WebAPI.Controllers
         }
 
         [HttpPost("{id:guid}/cells")]
+        [HasPermission(Permission.ManageSystem)]
         [ProducesResponseType<CellDTO>(StatusCodes.Status201Created)]
         [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
         [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
@@ -56,6 +64,7 @@ namespace ServerAutomatedStorage.WebAPI.Controllers
         }
 
         [HttpPut("{id:guid}/cells/{cellId:guid}")]
+        [HasPermission(Permission.ManageSystem)]
         [ProducesResponseType<CellDTO>(StatusCodes.Status200OK)]
         [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
         [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
@@ -63,6 +72,7 @@ namespace ServerAutomatedStorage.WebAPI.Controllers
             => Ok(await Sender.Send(new RenameCellCommand(id, cellId, request.Name), ct));
      
         [HttpDelete("{id:guid}/cells/{cellId:guid}")]
+        [HasPermission(Permission.ManageSystem)]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
         [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
