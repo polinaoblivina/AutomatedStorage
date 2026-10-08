@@ -2,7 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using ServerAutomatedStorage.Application.Common.Interfaces;
 using ServerAutomatedStorage.Application.Features.Auth.Commands;
-using ServerAutomatedStorage.Application.Features.Auth.DTO;
+using ServerAutomatedStorage.Application.Features.Auth.DTOs;
 using ServerAutomatedStorage.Application.Features.Users.DTOs;
 using ServerAutomatedStorage.Application.Features.Users.Queries;
 using ServerAutomatedStorage.WebAPI.Contracts;

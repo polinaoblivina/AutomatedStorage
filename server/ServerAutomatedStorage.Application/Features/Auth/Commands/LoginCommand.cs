@@ -2,7 +2,7 @@
 using MediatR;
 using ServerAutomatedStorage.Application.Common.Exceptions;
 using ServerAutomatedStorage.Application.Common.Interfaces;
-using ServerAutomatedStorage.Application.Features.Auth.DTO;
+using ServerAutomatedStorage.Application.Features.Auth.DTOs;
 using ServerAutomatedStorage.Application.Features.Users.DTOs;
 using ServerAutomatedStorage.Domain.Interfaces;
 using System;
@@ -19,30 +19,27 @@ namespace ServerAutomatedStorage.Application.Features.Auth.Commands
         {
             RuleFor(x => x.Email).NotEmpty().EmailAddress();
             RuleFor(x => x.Password).NotEmpty();
-            {
-                RuleFor(x => x.Email).NotEmpty().EmailAddress();
-                RuleFor(x => x.Password).NotEmpty();
-            }
         }
+    }
 
-        public sealed class LoginHandler(
-            IIdentityService identityService,
-            IUserRepository userRepository,
-            IJwtTokenGenerator tokenGenerator) : IRequestHandler<LoginCommand, LoginResponse>
+    public sealed class LoginHandler(
+        IIdentityService identityService,
+        IUserRepository userRepository,
+        IJwtTokenGenerator tokenGenerator) : IRequestHandler<LoginCommand, LoginResponse>
+    {
+        public async Task<LoginResponse> Handle(LoginCommand request, CancellationToken cancellationToken)
         {
-            public async Task<LoginResponse> Handle(LoginCommand request, CancellationToken cancellationToken)
-            {
-                var domainUserId = await identityService.ValidateCredentialsAsync(request.Email, request.Password)
-                    ?? throw new UnauthorizedException("Неверный email или пароль.");
+            var domainUserId = await identityService.ValidateCredentialsAsync(request.Email, request.Password)
+                ?? throw new UnauthorizedException("Неверный email или пароль.");
 
-                var user = await userRepository.GetByIdWithRoleAsync(domainUserId, cancellationToken);
-                if (user is null || !user.IsActive)
-                    throw new UnauthorizedException("Учётная запись отключена.");
+            var user = await userRepository.GetByIdWithRoleAsync(domainUserId, cancellationToken);
+            if (user is null || !user.IsActive)
+                throw new UnauthorizedException("Учётная запись отключена.");
 
-                var token = tokenGenerator.GenerateToken(user);
+            var token = tokenGenerator.GenerateToken(user);
 
-                return new LoginResponse(token.Token, token.ExpiresAtUtc, UserDTO.From(user, request.Email));
-            }
+            return new LoginResponse(token.Token, token.ExpiresAtUtc, UserDTO.From(user, request.Email));
         }
     }
 }
+
