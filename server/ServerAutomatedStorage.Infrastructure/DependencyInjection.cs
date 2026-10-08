@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using ServerAutomatedStorage.Application.Common.Interfaces;
 using ServerAutomatedStorage.Domain.Interfaces;
 using ServerAutomatedStorage.Infrastructure.Authentication;
 using ServerAutomatedStorage.Infrastructure.Identity;
@@ -38,6 +39,8 @@ namespace ServerAutomatedStorage.Infrastructure
             .AddEntityFrameworkStores<AppDbContext>()
             .AddErrorDescriber<RussianIdentityErrorDescriber>();
             services.AddJwtAuthentication(configuration);
+
+            services.AddScoped<IIdentityService, IdentityService>();
 
             return services;
         }
