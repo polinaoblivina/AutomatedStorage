@@ -15,7 +15,14 @@ bool rfidInit() {
 
 bool rfidIsAlive() {
     byte version = mfrc522.PCD_ReadRegister(MFRC522::VersionReg);
-    return (version != 0x00 && version != 0xFF);
+    if (version == 0x00 || version == 0xFF) return false;
+
+    byte txControl = mfrc522.PCD_ReadRegister(MFRC522::TxControlReg);
+    if ((txControl & 0x03) != 0x03) {
+        Serial.println("RC522: antenna off after reset, reinitializing");
+        mfrc522.PCD_Init();
+    }
+    return true;
 }
 
 bool rfidReadCard(String& cardId) {
