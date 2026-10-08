@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using ServerAutomatedStorage.Domain.Interfaces;
+using ServerAutomatedStorage.Infrastructure.Authentication;
 using ServerAutomatedStorage.Infrastructure.Identity;
 using ServerAutomatedStorage.Infrastructure.Persistence;
 using ServerAutomatedStorage.Infrastructure.Persistence.Repositories;
@@ -36,6 +37,7 @@ namespace ServerAutomatedStorage.Infrastructure
             })
             .AddEntityFrameworkStores<AppDbContext>()
             .AddErrorDescriber<RussianIdentityErrorDescriber>();
+            services.AddJwtAuthentication(configuration);
 
             return services;
         }
