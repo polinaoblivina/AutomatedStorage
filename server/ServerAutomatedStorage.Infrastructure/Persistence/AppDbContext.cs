@@ -1,12 +1,15 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using ServerAutomatedStorage.Domain.Entities;
+using ServerAutomatedStorage.Infrastructure.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Text;
 
 namespace ServerAutomatedStorage.Infrastructure.Persistence
 {
-    public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options)
+    public class AppDbContext(DbContextOptions<AppDbContext> options)
+    : IdentityUserContext<ApplicationUser, Guid>(options)
     {
         public DbSet<Cabinet> Cabinets => Set<Cabinet>();
         public DbSet<Cell> Cells => Set<Cell>();
