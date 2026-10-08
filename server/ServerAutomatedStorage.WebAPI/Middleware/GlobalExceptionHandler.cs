@@ -20,6 +20,7 @@ namespace ServerAutomatedStorage.WebAPI.Middleware
                 ValidationException ex => CreateValidationProblem(ex),
                 NotFoundException ex => Problem(StatusCodes.Status404NotFound, "Не найдено", ex.Message),
                 ConflictException ex => Problem(StatusCodes.Status409Conflict, "Конфликт", ex.Message),
+                UnauthorizedException ex => Problem(StatusCodes.Status401Unauthorized, "Не авторизован", ex.Message),
                 DomainException ex => Problem(StatusCodes.Status400BadRequest, "Нарушение бизнес-правила", ex.Message),
                 DbUpdateException { InnerException: PostgresException { SqlState: PostgresErrorCodes.UniqueViolation } }
                     => Problem(StatusCodes.Status409Conflict, "Конфликт", "Запись с таким значением уже существует."),

@@ -1,14 +1,21 @@
 using Scalar.AspNetCore;
 using ServerAutomatedStorage.Application;
+using ServerAutomatedStorage.Application.Common.Interfaces;
 using ServerAutomatedStorage.Infrastructure;
-using ServerAutomatedStorage.WebAPI.Middleware;
-using System.Text.Json.Serialization;
 using ServerAutomatedStorage.Infrastructure.Persistence;
+using ServerAutomatedStorage.WebAPI.Authorization;
+using ServerAutomatedStorage.WebAPI.Middleware;
+using ServerAutomatedStorage.WebAPI.Services;
+using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddApplication();
+
+builder.Services.AddPermissionAuthorization();
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<ICurrentUser, CurrentUser>();
 
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails(options =>
@@ -37,6 +44,7 @@ if (app.Environment.IsDevelopment())
     app.MapScalarApiReference();
 }
 
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
