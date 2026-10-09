@@ -73,5 +73,27 @@ namespace ServerAutomatedStorage.Infrastructure.Identity
             var errors = string.Join(" ", result.Errors.Select(e => e.Description));
             throw new DomainException($"{message}: {errors}");
         }
+
+        public async Task SetCredentialsAsync(Guid domainUserId, string email, string password)
+        {
+            var appUser = await FindByDomainIdAsync(domainUserId);
+            if (appUser is null)
+            {
+                await CreateIdentityUserAsync(email, password, domainUserId);
+                return;
+            }
+
+            await EnsureEmailIsFreeAsync(email, domainUserId);
+
+            if (!string.Equals(appUser.Email, email, StringComparison.OrdinalIgnoreCase))
+            {
+                appUser.Email = email;
+                appUser.UserName = email;
+                EnsureSucceeded(await userManager.UpdateAsync(appUser), "Не удалось изменить email");
+            }
+
+            var token = await userManager.GeneratePasswordResetTokenAsync(appUser);
+            EnsureSucceeded(await userManager.ResetPasswordAsync(appUser, token, password), "Не удалось задать пароль");
+        }
     }
 }
