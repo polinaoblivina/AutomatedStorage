@@ -9,5 +9,6 @@ namespace ServerAutomatedStorage.Application.Common.Interfaces
         Task<Guid?> ValidateCredentialsAsync(string email, string password);
         Task<bool> ChangePasswordAsync(Guid domainUserId, string currentPassword, string newPassword);
         Task<IReadOnlyDictionary<Guid, string>> GetEmailsAsync(IEnumerable<Guid> domainUserIds, CancellationToken ct = default);
+        Task CreateIdentityUserAsync(string email, string password, Guid domainUserId);
     }
 }
