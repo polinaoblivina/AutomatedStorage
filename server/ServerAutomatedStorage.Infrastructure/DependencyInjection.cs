@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using ServerAutomatedStorage.Application.Common.Interfaces;
@@ -37,7 +38,8 @@ namespace ServerAutomatedStorage.Infrastructure
                 options.User.RequireUniqueEmail = true;
             })
             .AddEntityFrameworkStores<AppDbContext>()
-            .AddErrorDescriber<RussianIdentityErrorDescriber>();
+            .AddErrorDescriber<RussianIdentityErrorDescriber>()
+            .AddDefaultTokenProviders();
             services.AddJwtAuthentication(configuration);
 
             services.AddScoped<IIdentityService, IdentityService>();
