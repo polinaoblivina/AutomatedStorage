@@ -36,6 +36,9 @@ namespace ServerAutomatedStorage.Application.Features.Items.Commands
             var target = await cellRepository.GetWithItemAsync(request.CellId, cancellationToken)
                 ?? throw new NotFoundException("Ячейка не найдена.");
 
+            if (target.Item is not null)
+                throw new ConflictException($"В ячейке «{target.Name}» уже лежит товар «{target.Item.Name}».");
+
             await using var transaction = await unitOfWork.BeginTransactionAsync(cancellationToken);
 
             if (item.Cell is { } source)
@@ -49,8 +52,6 @@ namespace ServerAutomatedStorage.Application.Features.Items.Commands
             await transaction.CommitAsync(cancellationToken);
 
             return ItemDTO.From(item);
-
-            //проверка что вторая чейка пустая
         }
     }
 }
