@@ -44,6 +44,7 @@ namespace ServerAutomatedStorage.WebAPI.Controllers
         [ProducesResponseType<ItemDTO>(StatusCodes.Status200OK)]
         [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest)]
         [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
+        [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
         public async Task<ActionResult<ItemDTO>> Move(Guid id, MoveItemRequest request, CancellationToken ct)
             => Ok(await Sender.Send(new MoveItemCommand(id, request.CellId), ct));
 
