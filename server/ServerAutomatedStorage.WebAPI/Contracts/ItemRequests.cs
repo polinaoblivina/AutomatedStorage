@@ -8,4 +8,3 @@
 
     public sealed record AdjustStockRequest(int ActualQuantity);
 }
-}

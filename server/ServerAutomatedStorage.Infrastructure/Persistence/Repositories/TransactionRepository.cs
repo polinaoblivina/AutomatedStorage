@@ -7,7 +7,7 @@ using System.Text;
 
 namespace ServerAutomatedStorage.Infrastructure.Persistence.Repositories
 {
-    public class TransactionRepositroy(AppDbContext context) : Repository<Transaction>(context), ITransactionRepository
+    public class TransactionRepository(AppDbContext context) : Repository<Transaction>(context), ITransactionRepository
     {
         public async Task<bool> AnyForItemAsync(Guid itemId, CancellationToken ct = default)
         {
