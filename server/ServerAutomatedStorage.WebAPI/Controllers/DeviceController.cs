@@ -6,12 +6,18 @@ using ServerAutomatedStorage.Domain.Enums;
 using ServerAutomatedStorage.WebAPI.Authorization;
 using ServerAutomatedStorage.WebAPI.Contracts;
 using ServerAutomatedStorage.WebAPI.Services;
+using Microsoft.AspNetCore.SignalR;
+using ServerAutomatedStorage.WebAPI.Hubs;
+
 using static ServerAutomatedStorage.WebAPI.Contracts.DeviceMonitorResponses;
 
 namespace ServerAutomatedStorage.WebAPI.Controllers
 {
     [Authorize(Policy = AuthorizationSetup.DevicePolicy)]
-    public sealed class DeviceController(DeviceMonitor monitor, ILogger<DeviceController> logger) : ApiControllerBase
+    public sealed class DeviceController(
+           DeviceMonitor monitor,
+           IHubContext<DevicesHub, IDevicesClient> hub,
+           ILogger<DeviceController> logger) : ApiControllerBase
     {
         private string DeviceName => User.Identity?.Name ?? "unknown";
 
@@ -25,8 +31,9 @@ namespace ServerAutomatedStorage.WebAPI.Controllers
 
             logger.LogInformation("Устройство {Device}: карта {CardUid} -> {Result}",
                 DeviceName, request.CardUid, response.Result);
-            monitor.RecordEvent(DeviceName, DeviceEventType.CardScan, NormalizeCardUid(request.CardUid),
-                response.UserName, response.AccessGranted, response.Message);
+            var deviceEvent = monitor.RecordEvent(DeviceName, DeviceEventType.CardScan,
+                   NormalizeCardUid(request.CardUid), response.UserName, response.AccessGranted, response.Message);
+            await PushAsync(deviceEvent);
 
             return Ok(response);
         }
@@ -44,8 +51,9 @@ namespace ServerAutomatedStorage.WebAPI.Controllers
 
             logger.LogInformation("Устройство {Device}: карта {CardUid}, ячейка {CellId} -> {Message}",
                 DeviceName, request.CardUid, request.CellId, response.Message);
-            monitor.RecordEvent(DeviceName, DeviceEventType.Session, NormalizeCardUid(request.CardUid),
-                null, response.Success, Describe(response));
+            var deviceEvent = monitor.RecordEvent(DeviceName, DeviceEventType.Session,
+                   NormalizeCardUid(request.CardUid), null, response.Success, Describe(response));
+            await PushAsync(deviceEvent);
 
             return Ok(response);
         }
@@ -54,10 +62,19 @@ namespace ServerAutomatedStorage.WebAPI.Controllers
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-        public IActionResult Heartbeat(HeartbeatRequest request)
+        public async Task<IActionResult> Heartbeat(HeartbeatRequest request)
         {
             monitor.RecordHeartbeat(DeviceName, request, HttpContext.Connection.RemoteIpAddress?.ToString());
+            await PushAsync();
             return NoContent();
+        }
+
+        private async Task PushAsync(DeviceEventDTO? deviceEvent = null)
+        {
+            if (deviceEvent is not null)
+                await hub.Clients.All.DeviceEventRecorded(deviceEvent);
+
+            await hub.Clients.All.DeviceStatusChanged(monitor.GetStatus(DeviceName));
         }
 
         private static string NormalizeCardUid(string cardUid) =>

@@ -12,6 +12,7 @@ namespace ServerAutomatedStorage.Infrastructure.Authentication
 {
     internal static class AuthenticationSetup
     {
+        private const string HubsPathPrefix = "/hubs";
         public static IServiceCollection AddApiAuthentication(this IServiceCollection services, IConfiguration configuration)
         {
             var settings = configuration.GetSection(JwtSettings.SectionName).Get<JwtSettings>()
@@ -40,7 +41,11 @@ namespace ServerAutomatedStorage.Infrastructure.Authentication
                             RoleClaimType = AuthClaims.Role,
                             ClockSkew = TimeSpan.FromMinutes(1)
                         };
-                        options.Events = new JwtBearerEvents { OnTokenValidated = RefreshPrincipalAsync };
+                        options.Events = new JwtBearerEvents
+                        {
+                            OnMessageReceived = ReadHubAccessToken,
+                            OnTokenValidated = RefreshPrincipalAsync
+                        };
                     })
                     .AddScheme<DeviceApiKeyOptions, DeviceApiKeyHandler>(DeviceApiKeyDefaults.Scheme, options =>
                         configuration.GetSection(DeviceApiKeyDefaults.SectionName).Bind(options.Devices));
@@ -77,6 +82,15 @@ namespace ServerAutomatedStorage.Infrastructure.Authentication
 
             context.Principal = new ClaimsPrincipal(new ClaimsIdentity(
                 claims, JwtBearerDefaults.AuthenticationScheme, AuthClaims.Name, AuthClaims.Role));
+        }
+
+        private static Task ReadHubAccessToken(MessageReceivedContext context)
+        {
+            var accessToken = context.Request.Query["access_token"];
+            if (!string.IsNullOrEmpty(accessToken) && context.Request.Path.StartsWithSegments(HubsPathPrefix))
+                context.Token = accessToken;
+
+            return Task.CompletedTask;
         }
     }
 }
