@@ -18,8 +18,10 @@ builder.Services.AddApplication();
 builder.Services.AddPermissionAuthorization();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUser, CurrentUser>();
+
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton<DeviceMonitor>();
+builder.Services.AddHostedService<DeviceStatusWatcher>();
 
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails(options =>
