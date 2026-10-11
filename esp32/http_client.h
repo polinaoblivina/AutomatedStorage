@@ -5,5 +5,6 @@
 
 bool checkCard(const String& cardUid, String& userName);
 bool sendSession(const String& cardUid, float weightBefore, float weightAfter, String& message);
+bool sendHeartbeat(float weightGrams, bool rfidOk, bool scaleOk, const char* state);
 
 #endif
