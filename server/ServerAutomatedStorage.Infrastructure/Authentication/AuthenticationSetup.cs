@@ -23,6 +23,7 @@ namespace ServerAutomatedStorage.Infrastructure.Authentication
 
             services.Configure<JwtSettings>(configuration.GetSection(JwtSettings.SectionName));
             services.AddSingleton<IJwtTokenGenerator, JwtTokenGenerator>();
+            services.AddSingleton<IRefreshTokenGenerator, RefreshTokenGenerator>();
 
             services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                     .AddJwtBearer(options =>

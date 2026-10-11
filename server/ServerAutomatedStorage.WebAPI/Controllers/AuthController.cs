@@ -10,15 +10,23 @@ using ServerAutomatedStorage.WebAPI.Contracts;
 namespace ServerAutomatedStorage.WebAPI.Controllers
 {
     [Authorize]
+    [Route("api/auth")]
     public sealed class AuthController(ICurrentUser currentUser) : ApiControllerBase
     {
+        private const string RefreshCookieName = "refresh_token";
+        private const string RefreshCookiePath = "/api/auth";
+
         [AllowAnonymous]
         [HttpPost("login")]
         [ProducesResponseType<LoginResponse>(StatusCodes.Status200OK)]
         [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
         [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized)]
         public async Task<ActionResult<LoginResponse>> Login(LoginCommand command, CancellationToken ct)
-            => Ok(await Sender.Send(command, ct));
+        {
+            var result = await Sender.Send(command, ct);
+            SetRefreshCookie(result.RefreshToken);
+            return Ok(result.Response);
+        }
 
         [HttpGet("me")]
         [ProducesResponseType<UserDTO>(StatusCodes.Status200OK)]
@@ -36,5 +44,15 @@ namespace ServerAutomatedStorage.WebAPI.Controllers
                 currentUser.RequiredUserId, request.CurrentPassword, request.NewPassword), ct);
             return NoContent();
         }
+
+        private void SetRefreshCookie(NewRefreshToken token) =>
+               Response.Cookies.Append(RefreshCookieName, token.Token, new CookieOptions
+               {
+                   HttpOnly = true,
+                   Secure = true,
+                   SameSite = SameSiteMode.Strict,
+                   Path = RefreshCookiePath,
+                   Expires = token.ExpiresAtUtc
+               });
     }
 }

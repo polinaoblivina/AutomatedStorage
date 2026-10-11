@@ -4,6 +4,7 @@ using ServerAutomatedStorage.Application.Common.Exceptions;
 using ServerAutomatedStorage.Application.Common.Interfaces;
 using ServerAutomatedStorage.Application.Features.Auth.DTOs;
 using ServerAutomatedStorage.Application.Features.Users.DTOs;
+using ServerAutomatedStorage.Domain.Entities;
 using ServerAutomatedStorage.Domain.Interfaces;
 using System;
 using System.Collections.Generic;
@@ -11,7 +12,7 @@ using System.Text;
 
 namespace ServerAutomatedStorage.Application.Features.Auth.Commands
 {
-    public sealed record LoginCommand(string Email, string Password) : IRequest<LoginResponse>;
+    public sealed record LoginCommand(string Email, string Password) : IRequest<AuthResult>;
 
     public sealed class LoginValidator : AbstractValidator<LoginCommand>
     {
@@ -25,9 +26,12 @@ namespace ServerAutomatedStorage.Application.Features.Auth.Commands
     public sealed class LoginHandler(
         IIdentityService identityService,
         IUserRepository userRepository,
-        IJwtTokenGenerator tokenGenerator) : IRequestHandler<LoginCommand, LoginResponse>
+        IJwtTokenGenerator tokenGenerator,
+        IRefreshTokenGenerator refreshTokenGenerator,
+        IRefreshTokenRepository refreshTokenRepository,
+        IUnitOfWork unitOfWork) : IRequestHandler<LoginCommand, AuthResult>
     {
-        public async Task<LoginResponse> Handle(LoginCommand request, CancellationToken cancellationToken)
+        public async Task<AuthResult> Handle(LoginCommand request, CancellationToken cancellationToken)
         {
             var domainUserId = await identityService.ValidateCredentialsAsync(request.Email, request.Password)
                 ?? throw new UnauthorizedException("Неверный email или пароль.");
@@ -36,9 +40,19 @@ namespace ServerAutomatedStorage.Application.Features.Auth.Commands
             if (user is null || !user.IsActive)
                 throw new UnauthorizedException("Учётная запись отключена.");
 
-            var token = tokenGenerator.GenerateToken(user);
+            var nowUtc = DateTime.UtcNow;
+            await refreshTokenRepository.DeleteExpiredAsync(user.Id, nowUtc, cancellationToken);
 
-            return new LoginResponse(token.Token, token.ExpiresAtUtc, UserDTO.From(user, request.Email));
+            var refreshToken = refreshTokenGenerator.Generate();
+            await refreshTokenRepository.AddAsync(
+                new RefreshToken(user.Id, refreshToken.TokenHash, refreshToken.ExpiresAtUtc), cancellationToken);
+            await unitOfWork.SaveChangesAsync(cancellationToken);
+
+            var accessToken = tokenGenerator.GenerateToken(user);
+
+            return new AuthResult(
+                new LoginResponse(accessToken.Token, accessToken.ExpiresAtUtc, UserDTO.From(user, request.Email)),
+                refreshToken);
         }
     }
 }
