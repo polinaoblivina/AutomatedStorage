@@ -2,5 +2,6 @@
 
 const char* SSID = "your-wifi-name";
 const char* PASSWORD = "your-wifi-password";
-const char* URL = "http://192.168.0.10:5119";
-const char* DEVICE_KEY = "device-key-from-server-settings";
+const char* URL = "http://192.168.0.10:5037";
+const char* DEVICE_KEY = "device-key-from-server-user-secrets";
+const char* CELL_ID = "cell-guid-from-GET-api-cabinets";
