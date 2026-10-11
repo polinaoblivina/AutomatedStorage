@@ -2,13 +2,16 @@
 using Microsoft.AspNetCore.Mvc;
 using ServerAutomatedStorage.Application.Features.Access.Commands;
 using ServerAutomatedStorage.Application.Features.Access.DTOs;
+using ServerAutomatedStorage.Domain.Enums;
 using ServerAutomatedStorage.WebAPI.Authorization;
 using ServerAutomatedStorage.WebAPI.Contracts;
+using ServerAutomatedStorage.WebAPI.Services;
+using static ServerAutomatedStorage.WebAPI.Contracts.DeviceMonitorResponses;
 
 namespace ServerAutomatedStorage.WebAPI.Controllers
 {
     [Authorize(Policy = AuthorizationSetup.DevicePolicy)]
-    public sealed class DeviceController(ILogger<DeviceController> logger) : ApiControllerBase
+    public sealed class DeviceController(DeviceMonitor monitor, ILogger<DeviceController> logger) : ApiControllerBase
     {
         private string DeviceName => User.Identity?.Name ?? "unknown";
 
@@ -22,6 +25,8 @@ namespace ServerAutomatedStorage.WebAPI.Controllers
 
             logger.LogInformation("Устройство {Device}: карта {CardUid} -> {Result}",
                 DeviceName, request.CardUid, response.Result);
+            monitor.RecordEvent(DeviceName, DeviceEventType.CardScan, NormalizeCardUid(request.CardUid),
+                response.UserName, response.AccessGranted, response.Message);
 
             return Ok(response);
         }
@@ -39,8 +44,32 @@ namespace ServerAutomatedStorage.WebAPI.Controllers
 
             logger.LogInformation("Устройство {Device}: карта {CardUid}, ячейка {CellId} -> {Message}",
                 DeviceName, request.CardUid, request.CellId, response.Message);
+            monitor.RecordEvent(DeviceName, DeviceEventType.Session, NormalizeCardUid(request.CardUid),
+                null, response.Success, Describe(response));
 
             return Ok(response);
+        }
+
+        [HttpPost("heartbeat")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        public IActionResult Heartbeat(HeartbeatRequest request)
+        {
+            monitor.RecordHeartbeat(DeviceName, request, HttpContext.Connection.RemoteIpAddress?.ToString());
+            return NoContent();
+        }
+
+        private static string NormalizeCardUid(string cardUid) =>
+            Domain.Entities.User.NormalizeCardUid(cardUid) ?? cardUid;
+
+        private static string Describe(RecordSessionResponse response)
+        {
+            if (response.Quantity == 0)
+                return response.Message;
+
+            var action = response.TransactionType == nameof(TransactionType.Withdrawal) ? "взято" : "положено";
+            return $"{response.ItemName}: {action} {response.Quantity} шт.";
         }
     }
 }
