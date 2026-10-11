@@ -20,7 +20,10 @@ namespace ServerAutomatedStorage.Application.Features.Users.Commands
         }
     }
 
-    public sealed class DeactivateUserHandler(IUserRepository userRepository, IUnitOfWork unitOfWork)
+    public sealed class DeactivateUserHandler(
+        IUserRepository userRepository,
+        IRefreshTokenRepository refreshTokenRepository,
+        IUnitOfWork unitOfWork)
         : IRequestHandler<DeactivateUserCommand>
     {
         public async Task Handle(DeactivateUserCommand request, CancellationToken cancellationToken)
@@ -33,6 +36,7 @@ namespace ServerAutomatedStorage.Application.Features.Users.Commands
 
             user.Deactivate();
             await unitOfWork.SaveChangesAsync(cancellationToken);
+            await refreshTokenRepository.RevokeAllForUserAsync(user.Id, DateTime.UtcNow, cancellationToken);
         }
     }
 }

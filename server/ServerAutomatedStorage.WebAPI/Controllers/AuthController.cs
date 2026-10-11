@@ -43,6 +43,7 @@ namespace ServerAutomatedStorage.WebAPI.Controllers
         {
             await Sender.Send(new ChangePasswordCommand(
                 currentUser.RequiredUserId, request.CurrentPassword, request.NewPassword), ct);
+            DeleteRefreshCookie();
             return NoContent();
         }
 
