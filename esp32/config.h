@@ -20,6 +20,9 @@ extern const char* CELL_ID;
 #define RELAY_PIN 27
 
 #define SESSION_MS 15000
+#define LOCK_OPEN_MS 3000
+#define HEARTBEAT_MS 10000
+#define FIRMWARE_VERSION "1.1.0"
 
 #define LED_WIFI_PIN  25
 #define LED_RFID_PIN  26

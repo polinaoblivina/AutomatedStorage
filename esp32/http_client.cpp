@@ -9,6 +9,8 @@ static int postJson(const char* path, const String& body, String& response) {
 
     HTTPClient http;
     http.begin(String(URL) + path);
+    http.setConnectTimeout(2000);
+    http.setTimeout(3000);
     http.addHeader("Content-Type", "application/json");
     http.addHeader("X-Device-Key", DEVICE_KEY);
 
@@ -53,4 +55,18 @@ bool sendSession(const String& cardUid, float weightBefore, float weightAfter, S
 
     message = res["message"] | "";
     return res["success"] | false;
+}
+
+bool sendHeartbeat(float weightGrams, bool rfidOk, bool scaleOk, const char* state) {
+    JsonDocument req;
+    req["weightGrams"] = weightGrams;
+    req["rfidOk"] = rfidOk;
+    req["scaleOk"] = scaleOk;
+    req["state"] = state;
+    req["firmwareVersion"] = FIRMWARE_VERSION;
+    String body;
+    serializeJson(req, body);
+
+    String response;
+    return postJson("/api/device/heartbeat", body, response) == 204;
 }
