@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using ServerAutomatedStorage.Application.Common.Exceptions;
 using ServerAutomatedStorage.Application.Common.Interfaces;
 using ServerAutomatedStorage.Application.Features.Auth.Commands;
 using ServerAutomatedStorage.Application.Features.Auth.DTOs;
@@ -44,6 +45,45 @@ namespace ServerAutomatedStorage.WebAPI.Controllers
                 currentUser.RequiredUserId, request.CurrentPassword, request.NewPassword), ct);
             return NoContent();
         }
+
+        [AllowAnonymous]
+        [HttpPost("refresh")]
+        [ProducesResponseType<LoginResponse>(StatusCodes.Status200OK)]
+        [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
+        public async Task<ActionResult<LoginResponse>> Refresh(CancellationToken ct)
+        {
+            try
+            {
+                var result = await Sender.Send(new RefreshTokenCommand(Request.Cookies[RefreshCookieName]), ct);
+                SetRefreshCookie(result.RefreshToken);
+                return Ok(result.Response);
+            }
+            catch (UnauthorizedException)
+            {
+                DeleteRefreshCookie();
+                throw;
+            }
+        }
+
+        [AllowAnonymous]
+        [HttpPost("logout")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        public async Task<IActionResult> Logout(CancellationToken ct)
+        {
+            await Sender.Send(new LogoutCommand(Request.Cookies[RefreshCookieName]), ct);
+            DeleteRefreshCookie();
+            return NoContent();
+        }
+
+        private void DeleteRefreshCookie() =>
+            Response.Cookies.Delete(RefreshCookieName, new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = true,
+                SameSite = SameSiteMode.Strict,
+                Path = RefreshCookiePath
+            });
 
         private void SetRefreshCookie(NewRefreshToken token) =>
                Response.Cookies.Append(RefreshCookieName, token.Token, new CookieOptions
