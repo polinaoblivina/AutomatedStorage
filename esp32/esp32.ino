@@ -14,6 +14,9 @@ CabinetState state = CabinetState::Idle;
 unsigned long lastDisplay = 0;
 unsigned long lastCheck = 0;
 unsigned long lastRfidRetry = 0;
+unsigned long lastHeartbeat = 0;
+float lastWeight = 0;
+bool lastScaleOk = false;
 String lastCardId = "";
 unsigned long lastCardTime = 0;
 bool errorState = false;
@@ -79,6 +82,18 @@ void handleCard() {
     if (granted) startSession(cardId);
 }
 
+const char* stateName(CabinetState s) {
+    return s == CabinetState::SessionOpen ? "SessionOpen" : "Idle";
+}
+
+void sendHeartbeatIfDue() {
+    if (millis() - lastHeartbeat < HEARTBEAT_MS) return;
+    lastHeartbeat = millis();
+
+    bool ok = sendHeartbeat(lastWeight, rfidIsAlive(), lastScaleOk, stateName(state));
+    if (!ok) Serial.println("[heartbeat] not delivered");
+}
+
 void setup() {
     Serial.begin(115200);
     delay(1000);
@@ -121,10 +136,10 @@ void loop() {
     if (!showAccess && (millis() - lastDisplay > 1000)) {
         lastDisplay = millis();
 
-        bool wAlive = weightIsAlive();
-        float weight = wAlive ? weightRead() : 0;
+        lastScaleOk = weightIsAlive();
+        lastWeight = lastScaleOk ? weightRead() : 0;
 
-        displayAll(isWiFiConnected(), rfidIsAlive(), weight);
+        displayAll(isWiFiConnected(), rfidIsAlive(), lastWeight);
     }
 
     if (showAccess && millis() > accessDisplayUntil) {
@@ -134,6 +149,8 @@ void loop() {
     if (errorState) ledBlinkError();
     else ledSetError(false);
 
+    sendHeartbeatIfDue();
+    
     if (state == CabinetState::Idle) handleCard();
     else updateSession();
 
