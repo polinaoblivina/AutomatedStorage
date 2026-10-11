@@ -22,6 +22,8 @@ namespace ServerAutomatedStorage.WebAPI.Middleware
                 ConflictException ex => Problem(StatusCodes.Status409Conflict, "Конфликт", ex.Message),
                 UnauthorizedException ex => Problem(StatusCodes.Status401Unauthorized, "Не авторизован", ex.Message),
                 DomainException ex => Problem(StatusCodes.Status400BadRequest, "Нарушение бизнес-правила", ex.Message),
+                DbUpdateConcurrencyException => Problem(StatusCodes.Status409Conflict, "Конфликт",
+                    "Данные уже изменены другим запросом. Повторите действие."),
                 DbUpdateException { InnerException: PostgresException { SqlState: PostgresErrorCodes.UniqueViolation } }
                     => Problem(StatusCodes.Status409Conflict, "Конфликт", "Запись с таким значением уже существует."),
                 OperationCanceledException when httpContext.RequestAborted.IsCancellationRequested

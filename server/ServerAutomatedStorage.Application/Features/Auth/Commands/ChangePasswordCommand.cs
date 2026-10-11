@@ -2,6 +2,7 @@
 using MediatR;
 using ServerAutomatedStorage.Application.Common.Interfaces;
 using ServerAutomatedStorage.Domain.Common;
+using ServerAutomatedStorage.Domain.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -21,12 +22,16 @@ namespace ServerAutomatedStorage.Application.Features.Auth.Commands
         }
     }
 
-    public sealed class ChangePasswordHandler(IIdentityService identityService) : IRequestHandler<ChangePasswordCommand>
+    public sealed class ChangePasswordHandler(
+       IIdentityService identityService,
+       IRefreshTokenRepository refreshTokenRepository) : IRequestHandler<ChangePasswordCommand>
     {
         public async Task Handle(ChangePasswordCommand request, CancellationToken cancellationToken)
         {
             if (!await identityService.ChangePasswordAsync(request.UserId, request.CurrentPassword, request.NewPassword))
                 throw new DomainException("Не удалось сменить пароль. Проверьте текущий пароль.");
+
+            await refreshTokenRepository.RevokeAllForUserAsync(request.UserId, DateTime.UtcNow, cancellationToken);
         }
     }
 }

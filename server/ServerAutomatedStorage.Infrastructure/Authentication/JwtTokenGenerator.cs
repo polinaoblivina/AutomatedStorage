@@ -23,7 +23,7 @@ namespace ServerAutomatedStorage.Infrastructure.Authentication
 
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_settings.Secret));
             var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-            var expiresAtUtc = DateTime.UtcNow.AddMinutes(_settings.ExpiryMinutes);
+            var expiresAtUtc = DateTime.UtcNow.AddMinutes(_settings.AccessTokenMinutes);
 
             var token = new JwtSecurityToken(
                 issuer: _settings.Issuer,

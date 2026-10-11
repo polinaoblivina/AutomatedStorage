@@ -21,7 +21,10 @@ namespace ServerAutomatedStorage.Application.Features.Users.Commands
         }
     }
 
-    public sealed class SetUserCredentialsHandler(IUserRepository userRepository, IIdentityService identityService)
+    public sealed class SetUserCredentialsHandler(
+        IUserRepository userRepository,
+        IIdentityService identityService,
+        IRefreshTokenRepository refreshTokenRepository)
         : IRequestHandler<SetUserCredentialsCommand>
     {
         public async Task Handle(SetUserCredentialsCommand request, CancellationToken cancellationToken)
@@ -30,6 +33,7 @@ namespace ServerAutomatedStorage.Application.Features.Users.Commands
                 throw new NotFoundException("Пользователь не найден.");
 
             await identityService.SetCredentialsAsync(request.UserId, request.Email.Trim(), request.Password);
+            await refreshTokenRepository.RevokeAllForUserAsync(request.UserId, DateTime.UtcNow, cancellationToken);
         }
     }
 }
