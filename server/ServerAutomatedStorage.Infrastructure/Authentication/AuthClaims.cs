@@ -11,5 +11,6 @@ namespace ServerAutomatedStorage.Infrastructure.Authentication
         public const string Name = JwtRegisteredClaimNames.Name;
         public const string Role = "role";
         public const string Permission = "permission";
+        public const string Device = "device";
     }
 }

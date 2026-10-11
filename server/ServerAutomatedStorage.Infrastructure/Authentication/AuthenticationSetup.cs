@@ -12,7 +12,7 @@ namespace ServerAutomatedStorage.Infrastructure.Authentication
 {
     internal static class AuthenticationSetup
     {
-        public static IServiceCollection AddJwtAuthentication(this IServiceCollection services, IConfiguration configuration)
+        public static IServiceCollection AddApiAuthentication(this IServiceCollection services, IConfiguration configuration)
         {
             var settings = configuration.GetSection(JwtSettings.SectionName).Get<JwtSettings>()
                 ?? throw new InvalidOperationException("Jwt section is not configured.");
@@ -41,7 +41,9 @@ namespace ServerAutomatedStorage.Infrastructure.Authentication
                             ClockSkew = TimeSpan.FromMinutes(1)
                         };
                         options.Events = new JwtBearerEvents { OnTokenValidated = RefreshPrincipalAsync };
-                    });
+                    })
+                    .AddScheme<DeviceApiKeyOptions, DeviceApiKeyHandler>(DeviceApiKeyDefaults.Scheme, options =>
+                        configuration.GetSection(DeviceApiKeyDefaults.SectionName).Bind(options.Devices));
 
             return services;
         }

@@ -27,7 +27,7 @@ builder.Services.AddControllers(options =>
     options.SuppressImplicitRequiredAttributeForNonNullableReferenceTypes = true)
     .AddJsonOptions(options =>
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
-builder.Services.AddOpenApi(options => options.AddDocumentTransformer<BearerSecuritySchemeTransformer>());
+builder.Services.AddOpenApi(options => options.AddDocumentTransformer<SecuritySchemesTransformer>());
 builder.Services.AddHealthChecks().AddDbContextCheck<AppDbContext>();
     
 

@@ -43,7 +43,7 @@ namespace ServerAutomatedStorage.Infrastructure
             .AddEntityFrameworkStores<AppDbContext>()
             .AddErrorDescriber<RussianIdentityErrorDescriber>()
             .AddDefaultTokenProviders();
-            services.AddJwtAuthentication(configuration);
+            services.AddApiAuthentication(configuration);
 
             services.AddScoped<IIdentityService, IdentityService>();
 

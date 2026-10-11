@@ -16,4 +16,6 @@
     dotnet user-secrets set "ConnectionStrings:Postgres" "Host=localhost;Port=5432;Database=smartstorage;Username=postgres;Password=..." --project server/ServerAutomatedStorage.WebAPI
     dotnet user-secrets set "Seed:AdminPassword" "..." --project server/ServerAutomatedStorage.WebAPI
     dotnet user-secrets set "Jwt:Secret" "..." --project server/ServerAutomatedStorage.WebAPI
+    dotnet user-secrets set "Devices:0:Name" "cabinet-1" --project server/ServerAutomatedStorage.WebAPI
+    dotnet user-secrets set "Devices:0:ApiKey" "<64 hex-символа, тот же ключ — в esp32/config.cpp>" --project server/ServerAutomatedStorage.WebAPI
 ```

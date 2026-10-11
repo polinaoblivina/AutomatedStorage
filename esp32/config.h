@@ -5,6 +5,7 @@ extern const char* SSID;
 extern const char* PASSWORD;
 extern const char* URL;
 extern const char* DEVICE_KEY;
+extern const char* CELL_ID;
 
 #define OLED_SDA 16
 #define OLED_SCL 17
@@ -17,6 +18,8 @@ extern const char* DEVICE_KEY;
 #define HX711_SCK_PIN 14
 
 #define RELAY_PIN 27
+
+#define SESSION_MS 15000
 
 #define LED_WIFI_PIN  25
 #define LED_RFID_PIN  26

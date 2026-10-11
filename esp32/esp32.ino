@@ -93,9 +93,25 @@ void loop() {
         accessDisplayUntil = millis() + 3000;
 
         if (granted) {
+            bool scaleOk = weightIsAlive();
+            float weightBefore = scaleOk ? weightRead() : 0;
+
             lockOpen();
-            delay(3000);
+            delay(5000);
             lockClose();
+
+            Serial.printf("[session] waiting %d ms\n", SESSION_MS);
+            delay(SESSION_MS);
+
+            if (scaleOk && weightIsAlive()) {
+                float weightAfter = weightRead();
+                String message;
+                bool ok = sendSession(cardId, weightBefore, weightAfter, message);
+                Serial.printf("[session] before=%.1f after=%.1f ok=%d %s\n",
+                              weightBefore, weightAfter, ok, message.c_str());
+            } else {
+                Serial.println("[session] scale not ready, session not sent");
+            }
         }
     }
     

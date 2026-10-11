@@ -6,7 +6,7 @@ static HX711 scale;
 
 void weightInit() {
     scale.begin(HX711_DT_PIN, HX711_SCK_PIN);
-    scale.set_scale(2280.f);
+    scale.set_scale(-384.78);
     scale.tare();
 }
 
