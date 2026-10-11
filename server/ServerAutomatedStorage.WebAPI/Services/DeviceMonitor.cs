@@ -25,7 +25,7 @@ namespace ServerAutomatedStorage.WebAPI.Services
                 (_, current) => current with { LastSeenUtc = now, Heartbeat = heartbeat, RemoteAddress = remoteAddress });
         }
 
-        public void RecordEvent(
+        public DeviceEventDTO RecordEvent(
             string deviceName, DeviceEventType type, string? cardUid, string? userName, bool success, string message)
         {
             var now = timeProvider.GetUtcNow().UtcDateTime;
@@ -42,6 +42,8 @@ namespace ServerAutomatedStorage.WebAPI.Services
                 while (_events.Count > EventCapacity)
                     _events.RemoveLast();
             }
+
+            return deviceEvent;
         }
 
         public IReadOnlyList<DeviceEventDTO> GetEvents(DateTime? sinceUtc, DeviceEventType? type, int take)
@@ -60,30 +62,35 @@ namespace ServerAutomatedStorage.WebAPI.Services
         {
             var now = timeProvider.GetUtcNow().UtcDateTime;
 
-            var names = options.Get(DeviceApiKeyDefaults.Scheme).Devices
+            return options.Get(DeviceApiKeyDefaults.Scheme).Devices
                 .Select(d => d.Name)
                 .Concat(_devices.Keys)
                 .Distinct(StringComparer.OrdinalIgnoreCase)
-                .OrderBy(n => n);
+                .OrderBy(n => n)
+                .Select(name => BuildStatus(name, now))
+                .ToList();
+        }
 
-            return names.Select(name =>
-            {
-                if (!_devices.TryGetValue(name, out var snapshot))
-                    return new DeviceStatusDTO(name, false, null, null, null, null, null, null, null, null);
+        public DeviceStatusDTO GetStatus(string deviceName) =>
+            BuildStatus(deviceName, timeProvider.GetUtcNow().UtcDateTime);
 
-                var heartbeat = snapshot.Heartbeat;
-                return new DeviceStatusDTO(
-                    name,
-                    now - snapshot.LastSeenUtc <= OnlineWindow,
-                    snapshot.LastSeenUtc,
-                    heartbeat?.WeightGrams,
-                    heartbeat?.RfidOk,
-                    heartbeat?.ScaleOk,
-                    heartbeat?.State,
-                    heartbeat?.FirmwareVersion,
-                    snapshot.RemoteAddress,
-                    snapshot.LastEvent);
-            }).ToList();
+        private DeviceStatusDTO BuildStatus(string name, DateTime now)
+        {
+            if (!_devices.TryGetValue(name, out var snapshot))
+                return new DeviceStatusDTO(name, false, null, null, null, null, null, null, null, null);
+
+            var heartbeat = snapshot.Heartbeat;
+            return new DeviceStatusDTO(
+                name,
+                now - snapshot.LastSeenUtc <= OnlineWindow,
+                snapshot.LastSeenUtc,
+                heartbeat?.WeightGrams,
+                heartbeat?.RfidOk,
+                heartbeat?.ScaleOk,
+                heartbeat?.State,
+                heartbeat?.FirmwareVersion,
+                snapshot.RemoteAddress,
+                snapshot.LastEvent);
         }
 
         private sealed record DeviceSnapshot(
