@@ -17,6 +17,7 @@ namespace ServerAutomatedStorage.Infrastructure.Persistence
         public DbSet<User> StorageUsers => Set<User>();
         public DbSet<Role> StorageRoles => Set<Role>();
         public DbSet<Transaction> Transactions => Set<Transaction>();
+        public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

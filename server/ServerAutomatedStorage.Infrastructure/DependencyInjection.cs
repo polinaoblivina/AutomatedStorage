@@ -28,6 +28,7 @@ namespace ServerAutomatedStorage.Infrastructure
             services.AddScoped<IItemRepository, ItemRepository>();
             services.AddScoped<ICellRepository, CellRepository>();
             services.AddScoped<ITransactionRepository, TransactionRepository>();
+            services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
 
             services.AddScoped<IUnitOfWork, UnitOfWork>();
 
