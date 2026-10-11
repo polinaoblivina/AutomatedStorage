@@ -4,6 +4,7 @@ using ServerAutomatedStorage.Application.Common.Interfaces;
 using ServerAutomatedStorage.Infrastructure;
 using ServerAutomatedStorage.Infrastructure.Persistence;
 using ServerAutomatedStorage.WebAPI.Authorization;
+using ServerAutomatedStorage.WebAPI.Hubs;
 using ServerAutomatedStorage.WebAPI.Middleware;
 using ServerAutomatedStorage.WebAPI.OpenApi;
 using ServerAutomatedStorage.WebAPI.Services;
@@ -29,6 +30,11 @@ builder.Services.AddControllers(options =>
     options.SuppressImplicitRequiredAttributeForNonNullableReferenceTypes = true)
     .AddJsonOptions(options =>
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+
+builder.Services.AddSignalR()
+      .AddJsonProtocol(options =>
+          options.PayloadSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+
 builder.Services.AddOpenApi(options => options.AddDocumentTransformer<SecuritySchemesTransformer>());
 builder.Services.AddHealthChecks().AddDbContextCheck<AppDbContext>();
     
@@ -51,6 +57,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHub<DevicesHub>(DevicesHub.Path, options => options.CloseOnAuthenticationExpiration = true);
 app.MapHealthChecks("/health");
 
 app.Run();
