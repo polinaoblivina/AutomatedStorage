@@ -7,28 +7,90 @@
 #include "weight_sensor.h"
 #include "lock_controller.h"
 
+enum class CabinetState { Idle, SessionOpen };
+
+CabinetState state = CabinetState::Idle;
+
 unsigned long lastDisplay = 0;
 unsigned long lastCheck = 0;
 unsigned long lastRfidRetry = 0;
 String lastCardId = "";
-String currentCardId = "";
 unsigned long lastCardTime = 0;
 bool errorState = false;
 bool showAccess = false;
 unsigned long accessDisplayUntil = 0;
 
+String sessionCardId = "";
+unsigned long sessionStartedAt = 0;
+float sessionWeightBefore = 0;
+bool sessionScaleOk = false;
+
+void startSession(const String& cardId) {
+    sessionScaleOk = weightIsAlive();
+    sessionWeightBefore = sessionScaleOk ? weightRead() : 0;
+    sessionCardId = cardId;
+    sessionStartedAt = millis();
+
+    lockOpen();
+    state = CabinetState::SessionOpen;
+    Serial.printf("[session] started, before=%.1f, waiting %d ms\n", sessionWeightBefore, SESSION_MS);
+}
+
+void finishSession() {
+    if (lockIsOpen()) lockClose();
+
+    if (sessionScaleOk && weightIsAlive()) {
+        float weightAfter = weightRead();
+        String message;
+        bool ok = sendSession(sessionCardId, sessionWeightBefore, weightAfter, message);
+        Serial.printf("[session] before=%.1f after=%.1f ok=%d %s\n",
+                      sessionWeightBefore, weightAfter, ok, message.c_str());
+    } else {
+        Serial.println("[session] scale not ready, session not sent");
+    }
+
+    state = CabinetState::Idle;
+}
+
+void updateSession() {
+    unsigned long elapsed = millis() - sessionStartedAt;
+
+    if (lockIsOpen() && elapsed >= LOCK_OPEN_MS) lockClose();
+    if (elapsed >= SESSION_MS) finishSession();
+}
+
+void handleCard() {
+    String cardId;
+    if (!rfidReadCard(cardId)) return;
+
+    unsigned long now = millis();
+    if (cardId == lastCardId && (now - lastCardTime) < 3000) return;
+
+    lastCardId = cardId;
+    lastCardTime = now;
+
+    String userName;
+    bool granted = checkCard(cardId, userName);
+
+    displayAccess(granted, cardId, userName);
+    showAccess = true;
+    accessDisplayUntil = millis() + 3000;
+
+    if (granted) startSession(cardId);
+}
+
 void setup() {
     Serial.begin(115200);
     delay(1000);
-    
+
     ledInit();
     displayInit();
     weightInit();
     lockInit();
-    
+
     connectToWiFi(SSID, PASSWORD);
     ledSetWifi(isWiFiConnected());
-    
+
     if (rfidInit()) {
         ledSetRfid(true);
     } else {
@@ -44,7 +106,7 @@ void loop() {
         ledSetWifi(wifiOk);
         if (!wifiOk) connectToWiFi(SSID, PASSWORD);
     }
-    
+
     if (millis() - lastRfidRetry > 10000) {
         lastRfidRetry = millis();
         if (rfidIsAlive()) {
@@ -55,65 +117,25 @@ void loop() {
             errorState = true;
         }
     }
-    
+
     if (!showAccess && (millis() - lastDisplay > 1000)) {
         lastDisplay = millis();
-        
+
         bool wAlive = weightIsAlive();
         float weight = wAlive ? weightRead() : 0;
-        
+
         displayAll(isWiFiConnected(), rfidIsAlive(), weight);
     }
-    
+
     if (showAccess && millis() > accessDisplayUntil) {
         showAccess = false;
     }
-    
+
     if (errorState) ledBlinkError();
     else ledSetError(false);
-    
-    String cardId;
-    if (rfidReadCard(cardId)) {
-        unsigned long now = millis();
-        
-        if (cardId == lastCardId && (now - lastCardTime) < 3000) {
-            delay(100);
-            return;
-        }
-        
-        lastCardId = cardId;
-        lastCardTime = now;
-        currentCardId = cardId;
-        
-        String userName;
-        bool granted = checkCard(cardId, userName);
-        
-        displayAccess(granted, cardId, userName);
-        showAccess = true;
-        accessDisplayUntil = millis() + 3000;
 
-        if (granted) {
-            bool scaleOk = weightIsAlive();
-            float weightBefore = scaleOk ? weightRead() : 0;
+    if (state == CabinetState::Idle) handleCard();
+    else updateSession();
 
-            lockOpen();
-            delay(5000);
-            lockClose();
-
-            Serial.printf("[session] waiting %d ms\n", SESSION_MS);
-            delay(SESSION_MS);
-
-            if (scaleOk && weightIsAlive()) {
-                float weightAfter = weightRead();
-                String message;
-                bool ok = sendSession(cardId, weightBefore, weightAfter, message);
-                Serial.printf("[session] before=%.1f after=%.1f ok=%d %s\n",
-                              weightBefore, weightAfter, ok, message.c_str());
-            } else {
-                Serial.println("[session] scale not ready, session not sent");
-            }
-        }
-    }
-    
     delay(100);
 }
