@@ -3,6 +3,9 @@
     <File Path="../.gitignore" />
     <File Path="../README.md" />
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/ServerAutomatedStorage.UnitTests/ServerAutomatedStorage.UnitTests.csproj" />
+  </Folder>
   <Project Path="ServerAutomatedStorage.Application/ServerAutomatedStorage.Application.csproj" />
   <Project Path="ServerAutomatedStorage.Domain/ServerAutomatedStorage.Domain.csproj" />
   <Project Path="ServerAutomatedStorage.Infrastructure/ServerAutomatedStorage.Infrastructure.csproj" />
