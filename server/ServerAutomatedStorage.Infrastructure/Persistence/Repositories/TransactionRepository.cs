@@ -45,5 +45,18 @@ namespace ServerAutomatedStorage.Infrastructure.Persistence.Repositories
 
             return (items, total);
         }
+
+        public async Task<IReadOnlyList<TransactionSummary>> GetSummariesSinceAsync(
+            DateTime fromUtc, CancellationToken ct = default)
+        {
+            return await DbSet
+                .AsNoTracking()
+                .Where(t => t.CreatedAtUtc >= fromUtc)
+                .Select(t => new TransactionSummary(
+                    t.CreatedAtUtc, t.Type, t.Quantity,
+                    t.ItemId, t.Item!.Name,
+                    t.UserId, t.User!.FullName))
+                .ToListAsync(ct);
+        }
     }
 }
