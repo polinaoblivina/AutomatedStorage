@@ -15,8 +15,6 @@ unsigned long lastDisplay = 0;
 unsigned long lastCheck = 0;
 unsigned long lastRfidRetry = 0;
 unsigned long lastHeartbeat = 0;
-float lastWeight = 0;
-bool lastScaleOk = false;
 String lastCardId = "";
 unsigned long lastCardTime = 0;
 bool errorState = false;
@@ -25,31 +23,55 @@ unsigned long accessDisplayUntil = 0;
 
 String sessionCardId = "";
 unsigned long sessionStartedAt = 0;
-float sessionWeightBefore = 0;
-bool sessionScaleOk = false;
+float sessionWeightBefore[SCALE_COUNT];
+bool sessionScaleOk[SCALE_COUNT];
+
+const char* stateName(CabinetState s) {
+    return s == CabinetState::SessionOpen ? "SessionOpen" : "Idle";
+}
+
+bool scaleUsed(int scale) {
+    return strlen(CELL_IDS[scale]) > 0;
+}
+
+void readScales(float* weights, bool* ok) {
+    for (int i = 0; i < SCALE_COUNT; i++) {
+        ok[i] = weightIsAlive(i);
+        weights[i] = ok[i] ? weightGet(i) : 0;
+    }
+}
 
 void startSession(const String& cardId) {
-    sessionScaleOk = weightIsAlive();
-    sessionWeightBefore = sessionScaleOk ? weightRead() : 0;
+    weightUpdate(200);
+    readScales(sessionWeightBefore, sessionScaleOk);
     sessionCardId = cardId;
     sessionStartedAt = millis();
 
     lockOpen();
     state = CabinetState::SessionOpen;
-    Serial.printf("[session] started, before=%.1f, waiting %d ms\n", sessionWeightBefore, SESSION_MS);
+    Serial.printf("[session] started, waiting %d ms\n", SESSION_MS);
 }
 
 void finishSession() {
     if (lockIsOpen()) lockClose();
 
-    if (sessionScaleOk && weightIsAlive()) {
-        float weightAfter = weightRead();
+    weightUpdate(200);
+    float weightAfter[SCALE_COUNT];
+    bool okAfter[SCALE_COUNT];
+    readScales(weightAfter, okAfter);
+
+    for (int i = 0; i < SCALE_COUNT; i++) {
+        if (!scaleUsed(i)) continue;
+
+        if (!sessionScaleOk[i] || !okAfter[i]) {
+            Serial.printf("[session] scale %d not ready, cell skipped\n", i + 1);
+            continue;
+        }
+
         String message;
-        bool ok = sendSession(sessionCardId, sessionWeightBefore, weightAfter, message);
-        Serial.printf("[session] before=%.1f after=%.1f ok=%d %s\n",
-                      sessionWeightBefore, weightAfter, ok, message.c_str());
-    } else {
-        Serial.println("[session] scale not ready, session not sent");
+        bool ok = sendSession(sessionCardId, CELL_IDS[i], sessionWeightBefore[i], weightAfter[i], message);
+        Serial.printf("[session] scale %d before=%.1f after=%.1f ok=%d %s\n",
+                      i + 1, sessionWeightBefore[i], weightAfter[i], ok, message.c_str());
     }
 
     state = CabinetState::Idle;
@@ -82,16 +104,30 @@ void handleCard() {
     if (granted) startSession(cardId);
 }
 
-const char* stateName(CabinetState s) {
-    return s == CabinetState::SessionOpen ? "SessionOpen" : "Idle";
-}
-
 void sendHeartbeatIfDue() {
     if (millis() - lastHeartbeat < HEARTBEAT_MS) return;
     lastHeartbeat = millis();
 
-    bool ok = sendHeartbeat(lastWeight, rfidIsAlive(), lastScaleOk, stateName(state));
-    if (!ok) Serial.println("[heartbeat] not delivered");
+    float weights[SCALE_COUNT];
+    bool ok[SCALE_COUNT];
+    readScales(weights, ok);
+
+    if (!sendHeartbeat(weights, ok, rfidIsAlive(), stateName(state)))
+        Serial.println("[heartbeat] not delivered");
+}
+
+void updateStatusLeds() {
+    bool scalesOk = true;
+    for (int i = 0; i < SCALE_COUNT; i++) {
+        bool alive = weightIsAlive(i);
+        ledSetScale(i, alive);
+        if (scaleUsed(i) && !alive) scalesOk = false;
+    }
+
+    ledSetRelay(lockIsOpen());
+
+    if (errorState || !scalesOk) ledBlinkError();
+    else ledSetError(false);
 }
 
 void setup() {
@@ -115,6 +151,8 @@ void setup() {
 }
 
 void loop() {
+    weightUpdate();
+
     if (millis() - lastCheck > 5000) {
         lastCheck = millis();
         bool wifiOk = isWiFiConnected();
@@ -136,21 +174,20 @@ void loop() {
     if (!showAccess && (millis() - lastDisplay > 1000)) {
         lastDisplay = millis();
 
-        lastScaleOk = weightIsAlive();
-        lastWeight = lastScaleOk ? weightRead() : 0;
+        float weights[SCALE_COUNT];
+        bool ok[SCALE_COUNT];
+        readScales(weights, ok);
 
-        displayAll(isWiFiConnected(), rfidIsAlive(), lastWeight);
+        displayAll(isWiFiConnected(), rfidIsAlive(), weights, ok, SCALE_COUNT);
     }
 
     if (showAccess && millis() > accessDisplayUntil) {
         showAccess = false;
     }
 
-    if (errorState) ledBlinkError();
-    else ledSetError(false);
-
+    updateStatusLeds();
     sendHeartbeatIfDue();
-    
+
     if (state == CabinetState::Idle) handleCard();
     else updateSession();
 
