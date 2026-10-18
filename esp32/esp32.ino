@@ -153,12 +153,12 @@ void setup() {
 void loop() {
     weightUpdate();
 
-    if (millis() - lastCheck > 5000) {
+    if (millis() - lastCheck > 1000) {
         lastCheck = millis();
-        bool wifiOk = isWiFiConnected();
-        ledSetWifi(wifiOk);
-        if (!wifiOk) connectToWiFi(SSID, PASSWORD);
+        wifiMaintain();
+        ledSetWifi(isWiFiConnected());
     }
+
 
     if (millis() - lastRfidRetry > 10000) {
         lastRfidRetry = millis();
