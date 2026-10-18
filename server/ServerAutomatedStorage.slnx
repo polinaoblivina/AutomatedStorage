@@ -4,6 +4,7 @@
     <File Path="../README.md" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/ServerAutomatedStorage.IntegrationTests/ServerAutomatedStorage.IntegrationTests.csproj" />
     <Project Path="tests/ServerAutomatedStorage.UnitTests/ServerAutomatedStorage.UnitTests.csproj" />
   </Folder>
   <Project Path="ServerAutomatedStorage.Application/ServerAutomatedStorage.Application.csproj" />
