@@ -4,4 +4,7 @@ const char* SSID = "your-wifi-name";
 const char* PASSWORD = "your-wifi-password";
 const char* URL = "http://192.168.0.10:5037";
 const char* DEVICE_KEY = "device-key-from-server-user-secrets";
-const char* CELL_ID = "cell-guid-from-GET-api-cabinets";
+const char* CELL_IDS[SCALE_COUNT] = {
+    "cell-guid-for-scale-1-from-GET-api-cabinets",
+    "cell-guid-for-scale-2-from-GET-api-cabinets"
+};

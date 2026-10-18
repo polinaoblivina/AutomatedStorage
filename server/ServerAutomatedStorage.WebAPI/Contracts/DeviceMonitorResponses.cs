@@ -27,6 +27,7 @@
             DeviceState? State,
             string? FirmwareVersion,
             string? RemoteAddress,
-            DeviceEventDTO? LastEvent);
+            DeviceEventDTO? LastEvent,
+            IReadOnlyList<ScaleReading>? Scales);
     }
 }

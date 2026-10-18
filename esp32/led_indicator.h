@@ -7,7 +7,8 @@
 void ledInit();
 void ledSetWifi(bool on);
 void ledSetRfid(bool on);
-void ledSetHx711(bool on);
+void ledSetScale(int scale, bool on);
+void ledSetRelay(bool on);
 void ledSetError(bool on);
 void ledBlinkError();
 

@@ -4,7 +4,7 @@
 #include <Arduino.h>
 
 bool checkCard(const String& cardUid, String& userName);
-bool sendSession(const String& cardUid, float weightBefore, float weightAfter, String& message);
-bool sendHeartbeat(float weightGrams, bool rfidOk, bool scaleOk, const char* state);
+bool sendSession(const String& cardUid, const char* cellId, float weightBefore, float weightAfter, String& message);
+bool sendHeartbeat(const float* weights, const bool* scaleOk, bool rfidOk, const char* state);
 
 #endif

@@ -38,10 +38,10 @@ bool checkCard(const String& cardUid, String& userName) {
     return res["accessGranted"] | false;
 }
 
-bool sendSession(const String& cardUid, float weightBefore, float weightAfter, String& message) {
+bool sendSession(const String& cardUid, const char* cellId, float weightBefore, float weightAfter, String& message) {
     JsonDocument req;
     req["cardUid"] = cardUid;
-    req["cellId"] = CELL_ID;
+    req["cellId"] = cellId;
     req["weightBefore"] = weightBefore;
     req["weightAfter"] = weightAfter;
     String body;
@@ -57,13 +57,27 @@ bool sendSession(const String& cardUid, float weightBefore, float weightAfter, S
     return res["success"] | false;
 }
 
-bool sendHeartbeat(float weightGrams, bool rfidOk, bool scaleOk, const char* state) {
+bool sendHeartbeat(const float* weights, const bool* scaleOk, bool rfidOk, const char* state) {
+    bool allScalesOk = true;
+    for (int i = 0; i < SCALE_COUNT; i++) {
+        if (!scaleOk[i]) allScalesOk = false;
+    }
+
     JsonDocument req;
-    req["weightGrams"] = weightGrams;
+    req["weightGrams"] = weights[0];
     req["rfidOk"] = rfidOk;
-    req["scaleOk"] = scaleOk;
+    req["scaleOk"] = allScalesOk;
     req["state"] = state;
     req["firmwareVersion"] = FIRMWARE_VERSION;
+
+    JsonArray scales = req["scales"].to<JsonArray>();
+    for (int i = 0; i < SCALE_COUNT; i++) {
+        JsonObject scale = scales.add<JsonObject>();
+        scale["cellId"] = CELL_IDS[i];
+        scale["weightGrams"] = weights[i];
+        scale["ok"] = scaleOk[i];
+    }
+
     String body;
     serializeJson(req, body);
 

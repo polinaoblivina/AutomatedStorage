@@ -4,7 +4,8 @@
 #include <Arduino.h>
 
 void weightInit();
-bool weightIsAlive();
-float weightRead();
+void weightUpdate(unsigned long waitMs = 0);
+bool weightIsAlive(int scale);
+float weightGet(int scale);
 
 #endif

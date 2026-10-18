@@ -34,18 +34,26 @@ void displayAccess(bool granted, const String& cardUid, const String& userName) 
     display.display();
 }
 
-void displayAll(bool wifi, bool rfid, float weight) {
+void displayAll(bool wifi, bool rfid, const float* weights, const bool* scaleOk, int count) {
     display.clearDisplay();
     u8g2.setCursor(0, 12);
     u8g2.print("WiFi: ");
     u8g2.print(wifi ? "OK" : "--");
     u8g2.print(" RFID: ");
     u8g2.print(rfid ? "OK" : "--");
-    
-    u8g2.setCursor(0, 30);
-    u8g2.print("Вес: ");
-    u8g2.print(weight, 1);
-    u8g2.print(" г");
-    
+
+    for (int i = 0; i < count; i++) {
+        u8g2.setCursor(0, 28 + i * 14);
+        u8g2.print("Весы ");
+        u8g2.print(i + 1);
+        u8g2.print(": ");
+        if (scaleOk[i]) {
+            u8g2.print(weights[i], 1);
+            u8g2.print(" г");
+        } else {
+            u8g2.print("нет связи");
+        }
+    }
+
     display.display();
 }
