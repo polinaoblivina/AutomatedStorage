@@ -77,7 +77,7 @@ namespace ServerAutomatedStorage.WebAPI.Services
         private DeviceStatusDTO BuildStatus(string name, DateTime now)
         {
             if (!_devices.TryGetValue(name, out var snapshot))
-                return new DeviceStatusDTO(name, false, null, null, null, null, null, null, null, null);
+                return new DeviceStatusDTO(name, false, null, null, null, null, null, null, null, null, null);
 
             var heartbeat = snapshot.Heartbeat;
             return new DeviceStatusDTO(
@@ -90,8 +90,10 @@ namespace ServerAutomatedStorage.WebAPI.Services
                 heartbeat?.State,
                 heartbeat?.FirmwareVersion,
                 snapshot.RemoteAddress,
-                snapshot.LastEvent);
+                snapshot.LastEvent,
+                heartbeat?.Scales);
         }
+
 
         private sealed record DeviceSnapshot(
             DateTime LastSeenUtc,

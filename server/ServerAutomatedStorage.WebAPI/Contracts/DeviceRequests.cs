@@ -9,10 +9,13 @@
         SessionOpen
     }
 
+    public sealed record ScaleReading(string? CellId, double WeightGrams, bool Ok);
+
     public sealed record HeartbeatRequest(
         double WeightGrams,
         bool RfidOk,
         bool ScaleOk,
         DeviceState State = DeviceState.Idle,
-        string? FirmwareVersion = null);
+        string? FirmwareVersion = null,
+        IReadOnlyList<ScaleReading>? Scales = null);
 }
