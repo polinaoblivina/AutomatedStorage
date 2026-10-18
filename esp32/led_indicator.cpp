@@ -1,15 +1,17 @@
 #include "led_indicator.h"
 
+static const uint8_t SCALE_LED_PINS[] = { LED_SCALE1_PIN, LED_SCALE2_PIN };
+static const int SCALE_LED_COUNT = sizeof(SCALE_LED_PINS) / sizeof(SCALE_LED_PINS[0]);
+
 void ledInit() {
-    pinMode(LED_WIFI_PIN, OUTPUT);
-    pinMode(LED_RFID_PIN, OUTPUT);
-    pinMode(LED_HX711_PIN, OUTPUT);
-    pinMode(LED_ERROR_PIN, OUTPUT);
-    
-    digitalWrite(LED_WIFI_PIN, LOW);
-    digitalWrite(LED_RFID_PIN, LOW);
-    digitalWrite(LED_HX711_PIN, LOW);
-    digitalWrite(LED_ERROR_PIN, LOW);
+    const uint8_t pins[] = {
+        LED_WIFI_PIN, LED_RFID_PIN, LED_SCALE1_PIN, LED_SCALE2_PIN, LED_RELAY_PIN, LED_ERROR_PIN
+    };
+
+    for (uint8_t pin : pins) {
+        pinMode(pin, OUTPUT);
+        digitalWrite(pin, LOW);
+    }
 }
 
 void ledSetWifi(bool on) {
@@ -20,8 +22,13 @@ void ledSetRfid(bool on) {
     digitalWrite(LED_RFID_PIN, on ? HIGH : LOW);
 }
 
-void ledSetHx711(bool on) {
-    digitalWrite(LED_HX711_PIN, on ? HIGH : LOW);
+void ledSetScale(int scale, bool on) {
+    if (scale < 0 || scale >= SCALE_LED_COUNT) return;
+    digitalWrite(SCALE_LED_PINS[scale], on ? HIGH : LOW);
+}
+
+void ledSetRelay(bool on) {
+    digitalWrite(LED_RELAY_PIN, on ? HIGH : LOW);
 }
 
 void ledSetError(bool on) {
@@ -31,7 +38,7 @@ void ledSetError(bool on) {
 void ledBlinkError() {
     static unsigned long lastBlink = 0;
     static bool state = false;
-    
+
     if (millis() - lastBlink > 500) {
         lastBlink = millis();
         state = !state;

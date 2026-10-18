@@ -24,9 +24,11 @@ extern const char* CELL_ID;
 #define HEARTBEAT_MS 10000
 #define FIRMWARE_VERSION "1.1.0"
 
-#define LED_WIFI_PIN  25
-#define LED_RFID_PIN  26
-#define LED_HX711_PIN 32
-#define LED_ERROR_PIN 4
+#define LED_WIFI_PIN   25
+#define LED_RFID_PIN   26
+#define LED_SCALE1_PIN 32
+#define LED_SCALE2_PIN 15
+#define LED_RELAY_PIN  2
+#define LED_ERROR_PIN  4
 
 #endif
