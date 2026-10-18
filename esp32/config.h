@@ -22,7 +22,7 @@ extern const char* CELL_IDS[SCALE_COUNT];
 #define HX711_2_SCK_PIN 33
 
 #define SCALE_1_FACTOR -384.78
-#define SCALE_2_FACTOR 1.0
+#define SCALE_2_FACTOR -381.0
 
 #define RELAY_PIN 27
 #define SESSION_MS 15000
