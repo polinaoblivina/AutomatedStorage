@@ -43,11 +43,16 @@ extern const char* CELL_IDS[SCALE_COUNT];
 #define SESSION_RETRY_MS 15000
 #define FIRMWARE_VERSION "1.4.0"
 
-#define LED_WIFI_PIN   25
-#define LED_RFID_PIN   26
-#define LED_SCALE1_PIN 32
-#define LED_SCALE2_PIN 15
-#define LED_RELAY_PIN  2
-#define LED_ERROR_PIN  4
+#define LED_PIN 5
+#define LED_COUNT 8
+#define LED_BRIGHTNESS 40
+
+#define LED_WIFI        0
+#define LED_RFID        1
+#define LED_SCALE_FIRST 2
+#define LED_RELAY       4
+#define LED_DOOR        5
+#define LED_SESSION     6
+#define LED_STATUS      7
 
 #endif

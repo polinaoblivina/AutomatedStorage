@@ -213,18 +213,45 @@ void sendHeartbeatIfDue() {
         Serial.println("[heartbeat] not delivered");
 }
 
+LedState sessionLedState() {
+    if (state != CabinetState::SessionOpen) return LedState::Off;
+    if (!DOOR_SENSOR_ENABLED) return LedState::Active;
+
+    switch (sessionPhase) {
+        case SessionPhase::WaitDoorOpen:  return LedState::Active;
+        case SessionPhase::WaitDoorClose: return LedState::Warning;
+        case SessionPhase::WaitStable:    return LedState::Settling;
+    }
+    return LedState::Off;
+}
+
+LedState doorLedState() {
+    if (!DOOR_SENSOR_ENABLED) return LedState::Off;
+    if (doorOpenTooLong()) return LedState::Alarm;
+    return doorIsClosed() ? LedState::Ok : LedState::Warning;
+}
+
 void updateStatusLeds() {
     bool scalesOk = true;
     for (int i = 0; i < SCALE_COUNT; i++) {
         bool alive = weightIsAlive(i);
-        ledSetScale(i, alive);
-        if (scaleUsed(i) && !alive) scalesOk = false;
+        if (scaleUsed(i)) {
+            ledSetScale(i, alive ? LedState::Ok : LedState::Fail);
+            if (!alive) scalesOk = false;
+        } else {
+            ledSetScale(i, alive ? LedState::Ok : LedState::Off);
+        }
     }
 
     ledSetRelay(lockIsOpen());
+    ledSetDoor(doorLedState());
+    ledSetSession(sessionLedState());
 
-    if (errorState || !scalesOk || doorOpenTooLong()) ledBlinkError();
-    else ledSetError(false);
+    if (errorState || !scalesOk || doorOpenTooLong()) ledSetStatus(LedState::Alarm);
+    else if (sessionQueueSize() > 0) ledSetStatus(LedState::Pending);
+    else ledSetStatus(LedState::Ok);
+
+    ledUpdate();
 }
 
 void setup() {
@@ -246,6 +273,8 @@ void setup() {
         ledSetRfid(false);
         errorState = true;
     }
+
+    updateStatusLeds();
 }
 
 void loop() {
