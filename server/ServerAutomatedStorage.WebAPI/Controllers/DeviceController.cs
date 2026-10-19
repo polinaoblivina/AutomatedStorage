@@ -38,32 +38,12 @@ namespace ServerAutomatedStorage.WebAPI.Controllers
             return Ok(response);
         }
 
-        [HttpPost("session")]
+        [HttpPost("sessions")]
         [ProducesResponseType<RecordSessionResponse>(StatusCodes.Status200OK)]
         [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
-        public async Task<ActionResult<RecordSessionResponse>> RecordSession(
-            RecordSessionRequest request, CancellationToken ct)
-        {
-            var response = await Sender.Send(new RecordSessionCommand(
-                request.CardUid, request.CellId, request.WeightBefore, request.WeightAfter), ct);
-
-            logger.LogInformation("Устройство {Device}: карта {CardUid}, ячейка {CellId} -> {Message}",
-                DeviceName, request.CardUid, request.CellId, response.Message);
-            var deviceEvent = monitor.RecordEvent(DeviceName, DeviceEventType.Session,
-                   NormalizeCardUid(request.CardUid), null, response.Success, Describe(response));
-            await PushAsync(deviceEvent);
-
-            return Ok(response);
-        }
-
-        [HttpPost("sessions")]
-        [ProducesResponseType<RecordSessionsResponse>(StatusCodes.Status200OK)]
-        [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
-        public async Task<ActionResult<RecordSessionsResponse>> RecordSessions(RecordSessionsCommand command, CancellationToken ct)
+        public async Task<ActionResult<RecordSessionResponse>> RecordSession(RecordSessionCommand command, CancellationToken ct)
         {
             var response = await Sender.Send(command, ct);
 
@@ -79,7 +59,6 @@ namespace ServerAutomatedStorage.WebAPI.Controllers
 
             return Ok(response);
         }
-
 
         [HttpPost("heartbeat")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
@@ -103,24 +82,20 @@ namespace ServerAutomatedStorage.WebAPI.Controllers
         private static string NormalizeCardUid(string cardUid) =>
             Domain.Entities.User.NormalizeCardUid(cardUid) ?? cardUid;
 
-        private static string Describe(RecordSessionsResponse response)
+        private static string Describe(RecordSessionResponse response)
         {
             var changes = response.Cells
                 .Where(c => c.Quantity > 0)
-                .Select(c => Describe(new RecordSessionResponse(
-                    c.Success, c.Message, c.ItemName, c.TransactionType, c.Quantity, c.StockQuantity)))
+                .Select(Describe)
                 .ToList();
 
             return changes.Count > 0 ? string.Join("; ", changes) : response.Message;
         }
 
-        private static string Describe(RecordSessionResponse response)
+        private static string Describe(CellSessionResult cell)
         {
-            if (response.Quantity == 0)
-                return response.Message;
-
-            var action = response.TransactionType == nameof(TransactionType.Withdrawal) ? "взято" : "положено";
-            return $"{response.ItemName}: {action} {response.Quantity} шт.";
+            var action = cell.TransactionType == nameof(TransactionType.Withdrawal) ? "взято" : "положено";
+            return $"{cell.ItemName}: {action} {cell.Quantity} шт.";
         }
     }
 }
