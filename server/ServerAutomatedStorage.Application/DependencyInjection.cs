@@ -1,11 +1,12 @@
-﻿using System;
+﻿using FluentValidation;
+using Microsoft.Extensions.DependencyInjection;
+using ServerAutomatedStorage.Application.Common.Behaviors;
+using ServerAutomatedStorage.Application.Features.Access.Services;
+using System;
 using System.Collections.Generic;
-using System.Text;
 using System.Globalization;
 using System.Reflection;
-using Microsoft.Extensions.DependencyInjection;
-using FluentValidation;
-using ServerAutomatedStorage.Application.Common.Behaviors;
+using System.Text;
 
 namespace ServerAutomatedStorage.Application
 {
@@ -21,6 +22,8 @@ namespace ServerAutomatedStorage.Application
                 });
             ValidatorOptions.Global.LanguageManager.Culture = new CultureInfo("ru");
             services.AddValidatorsFromAssembly(assembly);
+            services.AddScoped<WeighingRecorder>();
+
             return services;
         }
     }

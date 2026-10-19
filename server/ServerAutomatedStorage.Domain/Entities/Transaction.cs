@@ -21,7 +21,7 @@ namespace ServerAutomatedStorage.Domain.Entities
 
         private Transaction() { }
 
-        public Transaction(Guid userId, Guid itemId, int quantity, double weightBefore, double weightAfter, TransactionType type)
+        public Transaction(Guid userId, Guid itemId, int quantity, double weightBefore, double weightAfter, TransactionType type, DateTime? occurredAtUtc = null)
         {
             UserId = Guard.AgainstDefault(userId, nameof(userId));
             ItemId = Guard.AgainstDefault(itemId, nameof(itemId));
@@ -29,7 +29,11 @@ namespace ServerAutomatedStorage.Domain.Entities
             WeightBefore = Guard.AgainstNegative(weightBefore, nameof(weightBefore));
             WeightAfter = Guard.AgainstNegative(weightAfter, nameof(weightAfter));
             Type = type;
+
+            if (occurredAtUtc is { } occurredAt)
+                CreatedAtUtc = occurredAt;
         }
+
     }
 }
 

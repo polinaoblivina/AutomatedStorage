@@ -2,9 +2,10 @@
 using MediatR;
 using ServerAutomatedStorage.Application.Common.Exceptions;
 using ServerAutomatedStorage.Application.Features.Access.DTOs;
+using ServerAutomatedStorage.Application.Features.Access.Services;
+using ServerAutomatedStorage.Domain.Entities;
 using ServerAutomatedStorage.Domain.Enums;
 using ServerAutomatedStorage.Domain.Interfaces;
-using ServerAutomatedStorage.Domain.Entities;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -31,10 +32,10 @@ namespace ServerAutomatedStorage.Application.Features.Access.Commands
     public sealed class RecordSessionHandler(
         IUserRepository userRepository,
         ICellRepository cellRepository,
-        ITransactionRepository transactionRepository,
+        WeighingRecorder weighingRecorder,
         IUnitOfWork unitOfWork) : IRequestHandler<RecordSessionCommand, RecordSessionResponse>
     {
-        public const double NoiseThresholdGrams = 5.0;
+        public const double NoiseThresholdGrams = WeighingRecorder.NoiseThresholdGrams;
 
         public async Task<RecordSessionResponse> Handle(RecordSessionCommand request, CancellationToken cancellationToken)
         {
@@ -45,28 +46,13 @@ namespace ServerAutomatedStorage.Application.Features.Access.Commands
             var cell = await cellRepository.GetWithItemAsync(request.CellId, cancellationToken)
                 ?? throw new NotFoundException("Ячейка не найдена.");
 
-            if (cell.Item is not { } item)
-                return new RecordSessionResponse(true, "В ячейке нет товара");
+            var response = await weighingRecorder.RecordAsync(
+                user, cell, request.WeightBefore, request.WeightAfter, occurredAtUtc: null, cancellationToken);
 
-            var weightBefore = Math.Max(0, request.WeightBefore);
-            var weightAfter = Math.Max(0, request.WeightAfter);
+            if (response.Quantity > 0)
+                await unitOfWork.SaveChangesAsync(cancellationToken);
 
-            var change = item.AnalyzeWeightChange(weightBefore, weightAfter, NoiseThresholdGrams);
-            if (!change.HasChange)
-                return new RecordSessionResponse(true, "Изменений нет", item.Name, StockQuantity: item.StockQuantity);
-
-            if (change.Type == TransactionType.Withdrawal)
-                item.CorrectStock(Math.Max(0, item.StockQuantity - change.Quantity));
-            else
-                item.AddStock(change.Quantity);
-
-            await transactionRepository.AddAsync(
-                new Transaction(user.Id, item.Id, change.Quantity, weightBefore, weightAfter, change.Type),
-                cancellationToken);
-            await unitOfWork.SaveChangesAsync(cancellationToken);
-
-            return new RecordSessionResponse(
-                true, "Операция записана", item.Name, change.Type.ToString(), change.Quantity, item.StockQuantity);
+            return response;
         }
     }
 }

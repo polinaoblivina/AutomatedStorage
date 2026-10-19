@@ -38,23 +38,31 @@ bool checkCard(const String& cardUid, String& userName) {
     return res["accessGranted"] | false;
 }
 
-bool sendSession(const String& cardUid, const char* cellId, float weightBefore, float weightAfter, String& message) {
+int sendSessions(const PendingSession& session, String& message) {
     JsonDocument req;
-    req["cardUid"] = cardUid;
-    req["cellId"] = cellId;
-    req["weightBefore"] = weightBefore;
-    req["weightAfter"] = weightAfter;
+    req["sessionId"] = (const char*)session.id;
+    req["cardUid"] = session.cardUid;
+    req["ageSeconds"] = (millis() - session.finishedAt) / 1000;
+
+    JsonArray cells = req["cells"].to<JsonArray>();
+    for (int i = 0; i < session.cellCount; i++) {
+        JsonObject cell = cells.add<JsonObject>();
+        cell["cellId"] = session.cells[i].cellId;
+        cell["weightBefore"] = session.cells[i].weightBefore;
+        cell["weightAfter"] = session.cells[i].weightAfter;
+    }
+
     String body;
     serializeJson(req, body);
 
     String response;
-    if (postJson("/api/device/session", body, response) != 200) return false;
+    int code = postJson("/api/device/sessions", body, response);
 
-    JsonDocument res;
-    if (deserializeJson(res, response)) return false;
-
-    message = res["message"] | "";
-    return res["success"] | false;
+    if (code == 200) {
+        JsonDocument res;
+        if (!deserializeJson(res, response)) message = res["message"] | "";
+    }
+    return code;
 }
 
 bool sendHeartbeat(const float* weights, const bool* scaleOk, bool rfidOk, const char* state) {

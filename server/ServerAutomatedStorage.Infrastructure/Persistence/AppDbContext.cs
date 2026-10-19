@@ -18,6 +18,8 @@ namespace ServerAutomatedStorage.Infrastructure.Persistence
         public DbSet<Role> StorageRoles => Set<Role>();
         public DbSet<Transaction> Transactions => Set<Transaction>();
         public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+        public DbSet<DeviceSession> DeviceSessions => Set<DeviceSession>();
+
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

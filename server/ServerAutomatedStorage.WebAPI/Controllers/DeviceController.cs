@@ -58,6 +58,29 @@ namespace ServerAutomatedStorage.WebAPI.Controllers
             return Ok(response);
         }
 
+        [HttpPost("sessions")]
+        [ProducesResponseType<RecordSessionsResponse>(StatusCodes.Status200OK)]
+        [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
+        public async Task<ActionResult<RecordSessionsResponse>> RecordSessions(RecordSessionsCommand command, CancellationToken ct)
+        {
+            var response = await Sender.Send(command, ct);
+
+            logger.LogInformation("Устройство {Device}: сессия {SessionId}, карта {CardUid}, ячеек {Count} -> {Message}",
+                DeviceName, command.SessionId, command.CardUid, command.Cells.Count, response.Message);
+
+            if (!response.AlreadyRecorded)
+            {
+                var deviceEvent = monitor.RecordEvent(DeviceName, DeviceEventType.Session,
+                    NormalizeCardUid(command.CardUid), null, response.Success, Describe(response));
+                await PushAsync(deviceEvent);
+            }
+
+            return Ok(response);
+        }
+
+
         [HttpPost("heartbeat")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
@@ -79,6 +102,17 @@ namespace ServerAutomatedStorage.WebAPI.Controllers
 
         private static string NormalizeCardUid(string cardUid) =>
             Domain.Entities.User.NormalizeCardUid(cardUid) ?? cardUid;
+
+        private static string Describe(RecordSessionsResponse response)
+        {
+            var changes = response.Cells
+                .Where(c => c.Quantity > 0)
+                .Select(c => Describe(new RecordSessionResponse(
+                    c.Success, c.Message, c.ItemName, c.TransactionType, c.Quantity, c.StockQuantity)))
+                .ToList();
+
+            return changes.Count > 0 ? string.Join("; ", changes) : response.Message;
+        }
 
         private static string Describe(RecordSessionResponse response)
         {
