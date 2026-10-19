@@ -5,6 +5,6 @@
 
 void displayInit();
 void displayAccess(bool granted, const String& cardUid, const String& userName);
-void displayAll(bool wifi, bool rfid, const float* weights, const bool* scaleOk, int count, int pendingSessions);
+void displayAll(bool wifi, bool rfid, const float* weights, const bool* scaleOk, int count, const String& footer);
 
 #endif
