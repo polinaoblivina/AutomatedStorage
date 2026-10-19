@@ -135,6 +135,33 @@ namespace ServerAutomatedStorage.Infrastructure.Persistence.Migrations
                     b.ToTable("Cells", (string)null);
                 });
 
+            modelBuilder.Entity("ServerAutomatedStorage.Domain.Entities.DeviceSession", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Key")
+                        .IsUnique();
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("DeviceSessions", (string)null);
+                });
+
             modelBuilder.Entity("ServerAutomatedStorage.Domain.Entities.Item", b =>
                 {
                     b.Property<Guid>("Id")
@@ -422,6 +449,15 @@ namespace ServerAutomatedStorage.Infrastructure.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("Cabinet");
+                });
+
+            modelBuilder.Entity("ServerAutomatedStorage.Domain.Entities.DeviceSession", b =>
+                {
+                    b.HasOne("ServerAutomatedStorage.Domain.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("ServerAutomatedStorage.Domain.Entities.Item", b =>
