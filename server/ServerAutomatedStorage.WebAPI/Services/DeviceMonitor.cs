@@ -74,7 +74,7 @@ namespace ServerAutomatedStorage.WebAPI.Services
         public DeviceStatusDTO GetStatus(string deviceName) =>
             BuildStatus(deviceName, timeProvider.GetUtcNow().UtcDateTime);
 
-        private DeviceStatusDTO BuildStatus(string name, DateTime now)
+                private DeviceStatusDTO BuildStatus(string name, DateTime now)
         {
             if (!_devices.TryGetValue(name, out var snapshot))
                 return new DeviceStatusDTO(name, false, null, null, null, null, null, null, null, null, null);
