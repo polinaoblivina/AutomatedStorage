@@ -1,4 +1,5 @@
 #include "config.h"
+#include "session_queue.h"
 #include "wifi_manager.h"
 #include "http_client.h"
 #include "rfid_reader.h"
@@ -20,6 +21,8 @@ unsigned long lastCardTime = 0;
 bool errorState = false;
 bool showAccess = false;
 unsigned long accessDisplayUntil = 0;
+unsigned long lastQueueTry = 0;
+unsigned long queueRetryMs = 0;
 
 String sessionCardId = "";
 unsigned long sessionStartedAt = 0;
@@ -60,6 +63,12 @@ void finishSession() {
     bool okAfter[SCALE_COUNT];
     readScales(weightAfter, okAfter);
 
+    PendingSession session;
+    sessionNewId(session.id);
+    session.cardUid = sessionCardId;
+    session.finishedAt = millis();
+    session.cellCount = 0;
+
     for (int i = 0; i < SCALE_COUNT; i++) {
         if (!scaleUsed(i)) continue;
 
@@ -68,14 +77,24 @@ void finishSession() {
             continue;
         }
 
-        String message;
-        bool ok = sendSession(sessionCardId, CELL_IDS[i], sessionWeightBefore[i], weightAfter[i], message);
-        Serial.printf("[session] scale %d before=%.1f after=%.1f ok=%d %s\n",
-                      i + 1, sessionWeightBefore[i], weightAfter[i], ok, message.c_str());
+        CellWeighing& cell = session.cells[session.cellCount];
+        cell.cellId = CELL_IDS[i];
+        cell.weightBefore = sessionWeightBefore[i];
+        cell.weightAfter = weightAfter[i];
+        session.cellCount++;
+
+        Serial.printf("[session] scale %d before=%.1f after=%.1f\n", i + 1, cell.weightBefore, cell.weightAfter);
+    }
+
+    if (session.cellCount > 0) {
+        sessionQueuePush(session);
+        lastQueueTry = millis();
+        queueRetryMs = sessionQueueSendNext() ? 0 : SESSION_RETRY_MS;
     }
 
     state = CabinetState::Idle;
 }
+
 
 void updateSession() {
     unsigned long elapsed = millis() - sessionStartedAt;
@@ -159,7 +178,6 @@ void loop() {
         ledSetWifi(isWiFiConnected());
     }
 
-
     if (millis() - lastRfidRetry > 10000) {
         lastRfidRetry = millis();
         if (rfidIsAlive()) {
@@ -178,7 +196,7 @@ void loop() {
         bool ok[SCALE_COUNT];
         readScales(weights, ok);
 
-        displayAll(isWiFiConnected(), rfidIsAlive(), weights, ok, SCALE_COUNT);
+        displayAll(isWiFiConnected(), rfidIsAlive(), weights, ok, SCALE_COUNT, sessionQueueSize());
     }
 
     if (showAccess && millis() > accessDisplayUntil) {
@@ -187,6 +205,11 @@ void loop() {
 
     updateStatusLeds();
     sendHeartbeatIfDue();
+
+    if (state == CabinetState::Idle && sessionQueueSize() > 0 && millis() - lastQueueTry >= queueRetryMs) {
+        lastQueueTry = millis();
+        queueRetryMs = sessionQueueSendNext() ? 0 : SESSION_RETRY_MS;
+    }
 
     if (state == CabinetState::Idle) handleCard();
     else updateSession();

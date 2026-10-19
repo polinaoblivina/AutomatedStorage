@@ -28,7 +28,9 @@ extern const char* CELL_IDS[SCALE_COUNT];
 #define SESSION_MS 15000
 #define LOCK_OPEN_MS 3000
 #define HEARTBEAT_MS 10000
-#define FIRMWARE_VERSION "1.2.0"
+
+#define SESSION_RETRY_MS 15000
+#define FIRMWARE_VERSION "1.3.0"
 
 #define LED_WIFI_PIN   25
 #define LED_RFID_PIN   26
