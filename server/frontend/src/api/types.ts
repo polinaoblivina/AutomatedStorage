@@ -97,3 +97,43 @@ export interface Role {
   name: string
   permissions: Permission[]
 }
+
+export interface Item {
+  id: string
+  name: string
+  unitWeightGrams: number
+  stockQuantity: number
+  minQuantity: number
+  isLowStock: boolean
+  isArchived: boolean
+  cellId: string | null
+  cellName: string | null
+  cabinetId: string | null
+  cabinetName: string | null
+  createdAtUtc: string
+}
+
+export interface RankedEntry {
+  id: string
+  name: string
+  quantity: number
+  operations: number
+}
+
+export interface Dashboard {
+  totals: {
+    cabinets: number
+    cells: number
+    freeCells: number
+    items: number
+    totalUnits: number
+    lowStockItems: number
+    activeUsers: number
+    withdrawnToday: number
+    operationsToday: number
+  }
+  daily: { date: string; withdrawn: number; replenished: number; operations: number }[]
+  topItems: RankedEntry[]
+  topUsers: RankedEntry[]
+  lowStock: Item[]
+}

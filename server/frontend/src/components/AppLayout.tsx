@@ -5,6 +5,7 @@ import { useAuth } from '../auth/AuthContext'
 import { can } from '../auth/can'
 
 const menuItems: { key: string; label: string; permission: Permission }[] = [
+  { key: '/dashboard', label: 'Сводка', permission: 'ViewJournal' },
   { key: '/devices', label: 'Шкафы', permission: 'ViewJournal' },
   { key: '/storage', label: 'Склад', permission: 'ViewJournal' },
   { key: '/journal', label: 'Журнал', permission: 'ViewJournal' },
