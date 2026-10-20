@@ -4,6 +4,7 @@ import { RequireAuth } from './components/RequireAuth'
 import { DevicesPage } from './pages/DevicesPage'
 import { JournalPage } from './pages/JournalPage'
 import { LoginPage } from './pages/LoginPage'
+import { StoragePage } from './pages/StoragePage'
 
 export default function App() {
   return (
@@ -18,6 +19,7 @@ export default function App() {
       >
         <Route path="/" element={<Navigate to="/devices" replace />} />
         <Route path="/devices" element={<DevicesPage />} />
+        <Route path="/storage" element={<StoragePage />} />
         <Route path="/journal" element={<JournalPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

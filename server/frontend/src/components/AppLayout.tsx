@@ -1,16 +1,23 @@
 import { Button, Layout, Menu, Space, Typography } from 'antd'
 import { Outlet, useLocation, useNavigate } from 'react-router'
+import type { Permission } from '../api/types'
 import { useAuth } from '../auth/AuthContext'
+import { can } from '../auth/can'
 
-const menuItems = [
-  { key: '/devices', label: 'Шкафы' },
-  { key: '/journal', label: 'Журнал' },
+const menuItems: { key: string; label: string; permission: Permission }[] = [
+  { key: '/devices', label: 'Шкафы', permission: 'ViewJournal' },
+  { key: '/storage', label: 'Склад', permission: 'ViewJournal' },
+  { key: '/journal', label: 'Журнал', permission: 'ViewJournal' },
 ]
 
 export function AppLayout() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
+
+  const visibleItems = menuItems
+    .filter((item) => can(user, item.permission))
+    .map(({ key, label }) => ({ key, label }))
 
   async function handleLogout() {
     await logout()
@@ -27,7 +34,7 @@ export function AppLayout() {
           theme="dark"
           mode="horizontal"
           selectedKeys={[location.pathname]}
-          items={menuItems}
+          items={visibleItems}
           onClick={(item) => navigate(item.key)}
           style={{ flex: 1 }}
         />

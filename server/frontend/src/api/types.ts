@@ -67,3 +67,27 @@ export interface PagedList<T> {
   totalCount: number
   totalPages: number
 }
+
+export type Permission = 'OpenCell' | 'ManageStock' | 'ViewJournal' | 'ManageUsers' | 'ManageSystem'
+
+export interface CellItem {
+  id: string
+  name: string
+  unitWeightGrams: number
+  stockQuantity: number
+  minQuantity: number
+  isLowStock: boolean
+}
+
+export interface Cell {
+  id: string
+  name: string
+  item: CellItem | null
+}
+
+export interface Cabinet {
+  id: string
+  name: string
+  location: string
+  cells: Cell[]
+}
