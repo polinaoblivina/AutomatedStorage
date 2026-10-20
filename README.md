@@ -117,15 +117,22 @@ dotnet run --project server/ServerAutomatedStorage.WebAPI --launch-profile http 
 
 ### 3. Веб-панель
 
-Сервер должен быть запущен. Во втором терминале:
+Собрать панель один раз (и после каждого изменения во фронтенде):
 
 ```powershell
 cd server/frontend
 npm install
-npm run dev
+npm run build
 ```
 
-Панель откроется на http://localhost:5173. Запросы к `/api` и `/hubs` Vite пересылает на сервер `http://localhost:5037`.
+Сборка попадает в `server/ServerAutomatedStorage.WebAPI/wwwroot` (папка не коммитится), и сервер сам отдаёт панель:
+после `dotnet run` она открывается на http://localhost:5037. Любой адрес, кроме `/api`, `/hubs` и файлов,
+возвращает `index.html`, а нужную страницу выбирает React.
+
+Для правки фронтенда удобнее режим разработки: сервер запущен, а во втором терминале `npm run dev`. Панель
+откроется на http://localhost:5173 и будет обновляться при сохранении файлов; запросы к `/api` и `/hubs` Vite
+пересылает на `http://localhost:5037`.
+
 Войти может пользователь с правом `ViewJournal` (кладовщик или администратор).
 
 | Раздел | Что там |
