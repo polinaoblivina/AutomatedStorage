@@ -55,11 +55,15 @@ if (app.Environment.IsDevelopment())
     app.MapScalarApiReference();
 }
 
+app.UseDefaultFiles();
+app.UseStaticFiles();
+
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
 app.MapHub<DevicesHub>(DevicesHub.Path, options => options.CloseOnAuthenticationExpiration = true);
 app.MapHealthChecks("/health");
+app.MapFallbackToFile("{*path:nonfile:regex(^(?!api/|hubs/))}", "index.html");
 
 app.Run();
