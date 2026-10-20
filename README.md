@@ -35,6 +35,7 @@
 |---|---|---|
 | `server/` | сервер и API | .NET 10, ASP.NET Core, EF Core, PostgreSQL, MediatR, FluentValidation, Identity, SignalR |
 | `server/tests/` | модульные и интеграционные тесты | xUnit, NSubstitute, WebApplicationFactory |
+| `server/frontend/` | веб-панель кладовщика и администратора | React, TypeScript, Vite, Ant Design, SignalR |
 | `esp32/` | прошивка контроллера шкафа | ESP32 (Arduino), MFRC522, HX711, SSD1306 — см. [esp32/README.md](esp32/README.md) |
 
 Сервер построен по Clean Architecture:
@@ -114,7 +115,28 @@ dotnet run --project server/ServerAutomatedStorage.WebAPI --launch-profile http
 dotnet run --project server/ServerAutomatedStorage.WebAPI --launch-profile http -- --urls "http://0.0.0.0:5037"
 ```
 
-### 3. Миграции (при изменении модели)
+### 3. Веб-панель
+
+Сервер должен быть запущен. Во втором терминале:
+
+```powershell
+cd server/frontend
+npm install
+npm run dev
+```
+
+Панель откроется на http://localhost:5173. Запросы к `/api` и `/hubs` Vite пересылает на сервер `http://localhost:5037`.
+Войти может пользователь с правом `ViewJournal` (кладовщик или администратор).
+
+| Раздел | Что там |
+|---|---|
+| Сводка | итоги по складу, что заканчивается, кто и что берёт чаще всего |
+| Шкафы | состояние устройств и лента событий в реальном времени |
+| Склад | шкафы, ячейки и предметы: добавить, пополнить, пересчитать, убрать |
+| Журнал | все операции с фильтром по типу |
+| Пользователи | сотрудники, карты, роли, вход в панель (только администратор) |
+
+### 4. Миграции (при изменении модели)
 
 ```powershell
 dotnet ef migrations add ИмяМиграции --project server/ServerAutomatedStorage.Infrastructure --startup-project server/ServerAutomatedStorage.WebAPI --output-dir Persistence/Migrations
