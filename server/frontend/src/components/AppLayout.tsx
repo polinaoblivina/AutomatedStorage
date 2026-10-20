@@ -8,6 +8,7 @@ const menuItems: { key: string; label: string; permission: Permission }[] = [
   { key: '/devices', label: 'Шкафы', permission: 'ViewJournal' },
   { key: '/storage', label: 'Склад', permission: 'ViewJournal' },
   { key: '/journal', label: 'Журнал', permission: 'ViewJournal' },
+  { key: '/users', label: 'Пользователи', permission: 'ManageUsers' },
 ]
 
 export function AppLayout() {

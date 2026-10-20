@@ -91,3 +91,9 @@ export interface Cabinet {
   location: string
   cells: Cell[]
 }
+
+export interface Role {
+  id: string
+  name: string
+  permissions: Permission[]
+}
