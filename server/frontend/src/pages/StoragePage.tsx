@@ -1,15 +1,39 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Alert, App, Button, Card, Empty, Flex, Form, Input, InputNumber, Modal, Popconfirm, Table, Tag, Typography } from 'antd'
+import {
+  Alert,
+  App,
+  Button,
+  Card,
+  Dropdown,
+  Empty,
+  Flex,
+  Form,
+  Input,
+  InputNumber,
+  Modal,
+  Progress,
+  Segmented,
+  Select,
+  Spin,
+  Tag,
+} from 'antd'
+import type { MenuProps } from 'antd'
 import { api } from '../api/client'
 import type { Cabinet, Cell, CellItem } from '../api/types'
 import { useAuth } from '../auth/AuthContext'
 import { can } from '../auth/can'
+import { PageHeader } from '../components/PageHeader'
+import { colors } from '../theme'
 import { errorText, formatGrams } from '../utils/format'
 
 type Dialog =
   | { kind: 'cabinet' }
+  | { kind: 'editCabinet'; cabinet: Cabinet }
   | { kind: 'cell'; cabinet: Cabinet }
+  | { kind: 'renameCell'; cabinet: Cabinet; cell: Cell }
   | { kind: 'item'; cell: Cell }
+  | { kind: 'editItem'; item: CellItem }
+  | { kind: 'move'; item: CellItem }
   | { kind: 'replenish'; item: CellItem }
   | { kind: 'adjust'; item: CellItem }
 
@@ -19,25 +43,64 @@ interface DialogForm {
   unitWeightGrams?: number
   minQuantity?: number
   quantity?: number
+  cellId?: string
 }
+
+type View = 'all' | 'low' | 'empty'
 
 const dialogTitles: Record<Dialog['kind'], string> = {
   cabinet: 'Новый шкаф',
+  editCabinet: 'Изменить шкаф',
   cell: 'Новая ячейка',
-  item: 'Положить предмет в ячейку',
+  renameCell: 'Переименовать ячейку',
+  item: 'Положить товар в ячейку',
+  editItem: 'Изменить товар',
+  move: 'Переместить товар в другую ячейку',
   replenish: 'Пополнить запас',
-  adjust: 'Инвентаризация: сколько штук на самом деле',
+  adjust: 'Инвентаризация',
+}
+
+function initialValues(dialog: Dialog | null): DialogForm {
+  switch (dialog?.kind) {
+    case 'editCabinet':
+      return { name: dialog.cabinet.name, location: dialog.cabinet.location }
+    case 'renameCell':
+      return { name: dialog.cell.name }
+    case 'editItem':
+      return { name: dialog.item.name, unitWeightGrams: dialog.item.unitWeightGrams, minQuantity: dialog.item.minQuantity }
+    case 'adjust':
+      return { quantity: dialog.item.stockQuantity }
+    case 'item':
+      return { minQuantity: 0 }
+    default:
+      return {}
+  }
+}
+
+function stockPercent(item: CellItem) {
+  if (item.minQuantity <= 0) return item.stockQuantity > 0 ? 100 : 0
+  return Math.min(100, (item.stockQuantity / (item.minQuantity * 2)) * 100)
+}
+
+function matches(cell: Cell, view: View, search: string) {
+  if (view === 'low' && !cell.item?.isLowStock) return false
+  if (view === 'empty' && cell.item) return false
+  if (!search) return true
+  const text = `${cell.name} ${cell.item?.name ?? ''}`.toLowerCase()
+  return text.includes(search.toLowerCase())
 }
 
 export function StoragePage() {
   const { user } = useAuth()
-  const { message } = App.useApp()
+  const { message, modal } = App.useApp()
   const [form] = Form.useForm<DialogForm>()
   const [cabinets, setCabinets] = useState<Cabinet[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [dialog, setDialog] = useState<Dialog | null>(null)
   const [saving, setSaving] = useState(false)
+  const [view, setView] = useState<View>('all')
+  const [search, setSearch] = useState('')
 
   const canManageSystem = can(user, 'ManageSystem')
   const canManageStock = can(user, 'ManageStock')
@@ -66,6 +129,17 @@ export function StoragePage() {
     }
   }
 
+  function confirm(title: string, content: string, action: () => Promise<unknown>, success: string) {
+    modal.confirm({
+      title,
+      content,
+      okText: 'Да',
+      okButtonProps: { danger: true },
+      cancelText: 'Отмена',
+      onOk: () => run(action, success),
+    })
+  }
+
   async function submitDialog(values: DialogForm) {
     if (!dialog) return
     setSaving(true)
@@ -74,8 +148,18 @@ export function StoragePage() {
       switch (dialog.kind) {
         case 'cabinet':
           return api('/cabinets', { method: 'POST', body: { name: values.name, location: values.location } })
+        case 'editCabinet':
+          return api(`/cabinets/${dialog.cabinet.id}`, {
+            method: 'PUT',
+            body: { name: values.name, location: values.location },
+          })
         case 'cell':
           return api(`/cabinets/${dialog.cabinet.id}/cells`, { method: 'POST', body: { name: values.name } })
+        case 'renameCell':
+          return api(`/cabinets/${dialog.cabinet.id}/cells/${dialog.cell.id}`, {
+            method: 'PUT',
+            body: { name: values.name },
+          })
         case 'item':
           return api('/items', {
             method: 'POST',
@@ -86,6 +170,13 @@ export function StoragePage() {
               minQuantity: values.minQuantity ?? 0,
             },
           })
+        case 'editItem':
+          return api(`/items/${dialog.item.id}`, {
+            method: 'PUT',
+            body: { name: values.name, unitWeightGrams: values.unitWeightGrams, minQuantity: values.minQuantity ?? 0 },
+          })
+        case 'move':
+          return api(`/items/${dialog.item.id}/move`, { method: 'POST', body: { cellId: values.cellId } })
         case 'replenish':
           return api(`/items/${dialog.item.id}/replenish`, { method: 'POST', body: { quantity: values.quantity } })
         case 'adjust':
@@ -97,112 +188,223 @@ export function StoragePage() {
     if (done) setDialog(null)
   }
 
-  function cellActions(cabinet: Cabinet, cell: Cell) {
+  async function removeItem(item: CellItem) {
+    const result = await api<{ archived: boolean }>(`/items/${item.id}`, { method: 'DELETE' })
+    if (result?.archived) message.info('У товара есть история операций, поэтому он перенесён в архив')
+  }
+
+  function cellMenu(cabinet: Cabinet, cell: Cell): MenuProps['items'] {
     const item = cell.item
+    const entries: MenuProps['items'] = []
+
+    if (item && canManageStock) {
+      entries.push(
+        { key: 'adjust', label: 'Пересчитать', onClick: () => setDialog({ kind: 'adjust', item }) },
+        { key: 'editItem', label: 'Изменить товар', onClick: () => setDialog({ kind: 'editItem', item }) },
+        { key: 'move', label: 'Переместить', onClick: () => setDialog({ kind: 'move', item }) },
+        {
+          key: 'remove',
+          label: 'Убрать из ячейки',
+          danger: true,
+          onClick: () => confirm(`Убрать «${item.name}» из ячейки?`, 'Ячейка станет свободной.', () => removeItem(item), 'Товар убран'),
+        },
+      )
+    }
+    if (canManageSystem) {
+      if (entries.length > 0) entries.push({ type: 'divider' })
+      entries.push({
+        key: 'renameCell',
+        label: 'Переименовать ячейку',
+        onClick: () => setDialog({ kind: 'renameCell', cabinet, cell }),
+      })
+      if (!item) {
+        entries.push({
+          key: 'removeCell',
+          label: 'Удалить ячейку',
+          danger: true,
+          onClick: () =>
+            confirm(
+              `Удалить ячейку «${cell.name}»?`,
+              'Ячейка исчезнет из шкафа.',
+              () => api(`/cabinets/${cabinet.id}/cells/${cell.id}`, { method: 'DELETE' }),
+              'Ячейка удалена',
+            ),
+        })
+      }
+    }
+    return entries
+  }
+
+  function cabinetMenu(cabinet: Cabinet): MenuProps['items'] {
+    return [
+      { key: 'edit', label: 'Изменить шкаф', onClick: () => setDialog({ kind: 'editCabinet', cabinet }) },
+      { type: 'divider' },
+      {
+        key: 'delete',
+        label: 'Удалить шкаф',
+        danger: true,
+        onClick: () =>
+          confirm(
+            `Удалить шкаф «${cabinet.name}»?`,
+            'Удалить можно только шкаф без товаров.',
+            () => api(`/cabinets/${cabinet.id}`, { method: 'DELETE' }),
+            'Шкаф удалён',
+          ),
+      },
+    ]
+  }
+
+  function cellTile(cabinet: Cabinet, cell: Cell) {
+    const item = cell.item
+    const menu = cellMenu(cabinet, cell)
+    const className = item ? (item.isLowStock ? 'cell-tile low' : 'cell-tile') : 'cell-tile empty'
+
     return (
-      <Flex gap={8} wrap>
-        {!item && canManageStock && (
-          <Button size="small" onClick={() => setDialog({ kind: 'item', cell })}>
-            Положить предмет
-          </Button>
-        )}
-        {item && canManageStock && (
+      <div key={cell.id} className={className}>
+        <Flex justify="space-between" align="center">
+          <span className="cell-name">{cell.name}</span>
+          {item?.isLowStock && <Tag color="red">мало</Tag>}
+          {!item && <span className="muted">свободна</span>}
+        </Flex>
+
+        {item ? (
           <>
-            <Button size="small" onClick={() => setDialog({ kind: 'replenish', item })}>
+            <div className="cell-item">{item.name}</div>
+            <Flex justify="space-between" align="baseline">
+              <span className="cell-stock" style={{ color: item.isLowStock ? colors.danger : undefined }}>
+                {item.stockQuantity} шт.
+              </span>
+              <span className="muted">мин. {item.minQuantity}</span>
+            </Flex>
+            <Progress
+              percent={stockPercent(item)}
+              showInfo={false}
+              size="small"
+              strokeColor={item.isLowStock ? colors.danger : colors.primary}
+            />
+            <span className="muted" style={{ fontSize: 12 }}>
+              1 шт. = {formatGrams(item.unitWeightGrams)}, всего {formatGrams(item.unitWeightGrams * item.stockQuantity)}
+            </span>
+          </>
+        ) : (
+          <div className="cell-item muted" style={{ fontWeight: 400 }}>
+            Пусто
+          </div>
+        )}
+
+        <Flex gap={8} style={{ marginTop: 'auto' }}>
+          {item && canManageStock && (
+            <Button size="small" type="primary" ghost onClick={() => setDialog({ kind: 'replenish', item })}>
               Пополнить
             </Button>
-            <Button size="small" onClick={() => setDialog({ kind: 'adjust', item })}>
-              Пересчитать
+          )}
+          {!item && canManageStock && (
+            <Button size="small" type="primary" ghost onClick={() => setDialog({ kind: 'item', cell })}>
+              Положить товар
             </Button>
-            <Popconfirm
-              title="Убрать предмет из ячейки?"
-              onConfirm={() => run(() => api(`/items/${item.id}`, { method: 'DELETE' }), 'Предмет убран')}
-            >
-              <Button size="small" danger>
-                Убрать
-              </Button>
-            </Popconfirm>
-          </>
-        )}
-        {!item && canManageSystem && (
-          <Popconfirm
-            title="Удалить ячейку?"
-            onConfirm={() =>
-              run(() => api(`/cabinets/${cabinet.id}/cells/${cell.id}`, { method: 'DELETE' }), 'Ячейка удалена')
-            }
-          >
-            <Button size="small" danger>
-              Удалить ячейку
-            </Button>
-          </Popconfirm>
-        )}
-      </Flex>
+          )}
+          {menu && menu.length > 0 && (
+            <Dropdown menu={{ items: menu }} trigger={['click']}>
+              <Button size="small">Ещё</Button>
+            </Dropdown>
+          )}
+        </Flex>
+      </div>
     )
   }
 
+  const allCells = cabinets.flatMap((cabinet) => cabinet.cells)
+  const freeCells = cabinets.flatMap((cabinet) =>
+    cabinet.cells.filter((cell) => !cell.item).map((cell) => ({ value: cell.id, label: `${cabinet.name}, ${cell.name}` })),
+  )
+  const lowCount = allCells.filter((cell) => cell.item?.isLowStock).length
+  const kind = dialog?.kind
+
   return (
-    <Flex vertical gap={16}>
-      <Flex align="center" justify="space-between">
-        <Typography.Title level={3} style={{ margin: 0 }}>
-          Склад
-        </Typography.Title>
-        {canManageSystem && (
-          <Button type="primary" onClick={() => setDialog({ kind: 'cabinet' })}>
-            Добавить шкаф
-          </Button>
-        )}
-      </Flex>
+    <>
+      <PageHeader
+        title="Ячейки и товары"
+        subtitle={`Шкафов ${cabinets.length}, ячеек ${allCells.length}, свободно ${freeCells.length}`}
+        extra={
+          canManageSystem && (
+            <Button type="primary" onClick={() => setDialog({ kind: 'cabinet' })}>
+              Добавить шкаф
+            </Button>
+          )
+        }
+      />
 
-      {error && <Alert type="error" title={error} />}
-      {!loading && cabinets.length === 0 && <Empty description="Шкафов пока нет" />}
-
-      {cabinets.map((cabinet) => (
-        <Card
-          key={cabinet.id}
-          title={`${cabinet.name} — ${cabinet.location}`}
-          extra={
-            canManageSystem && (
-              <Flex gap={8}>
-                <Button size="small" onClick={() => setDialog({ kind: 'cell', cabinet })}>
-                  Добавить ячейку
-                </Button>
-                <Popconfirm
-                  title="Удалить шкаф?"
-                  onConfirm={() => run(() => api(`/cabinets/${cabinet.id}`, { method: 'DELETE' }), 'Шкаф удалён')}
-                >
-                  <Button size="small" danger>
-                    Удалить шкаф
-                  </Button>
-                </Popconfirm>
-              </Flex>
-            )
-          }
-        >
-          <Table<Cell>
-            rowKey="id"
-            dataSource={cabinet.cells}
-            pagination={false}
-            size="small"
-            locale={{ emptyText: 'В шкафу нет ячеек' }}
-            columns={[
-              { title: 'Ячейка', dataIndex: 'name' },
-              { title: 'Предмет', render: (_, cell) => cell.item?.name ?? <Tag>пусто</Tag> },
-              {
-                title: 'Остаток',
-                render: (_, cell) =>
-                  cell.item && (
-                    <>
-                      {cell.item.stockQuantity} шт. {cell.item.isLowStock && <Tag color="red">мало</Tag>}
-                    </>
-                  ),
-              },
-              { title: 'Минимум', render: (_, cell) => cell.item?.minQuantity },
-              { title: 'Вес 1 шт.', render: (_, cell) => cell.item && formatGrams(cell.item.unitWeightGrams) },
-              { title: '', render: (_, cell) => cellActions(cabinet, cell) },
+      <Card style={{ marginBottom: 16 }}>
+        <Flex gap={12} wrap align="center">
+          <Input
+            allowClear
+            placeholder="Поиск по товару или ячейке"
+            style={{ maxWidth: 320 }}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+          <Segmented<View>
+            value={view}
+            onChange={setView}
+            options={[
+              { value: 'all', label: 'Все' },
+              { value: 'low', label: `Заканчиваются (${lowCount})` },
+              { value: 'empty', label: `Свободные (${freeCells.length})` },
             ]}
           />
+        </Flex>
+      </Card>
+
+      {error && <Alert type="error" title={error} style={{ marginBottom: 16 }} />}
+      {loading && <Spin size="large" style={{ display: 'block', marginTop: 80 }} />}
+      {!loading && cabinets.length === 0 && (
+        <Card>
+          <Empty description="Шкафов пока нет" />
         </Card>
-      ))}
+      )}
+
+      <Flex vertical gap={16}>
+        {cabinets.map((cabinet) => {
+          const cells = cabinet.cells.filter((cell) => matches(cell, view, search))
+          const busy = cabinet.cells.filter((cell) => cell.item).length
+
+          return (
+            <Card
+              key={cabinet.id}
+              title={
+                <div style={{ padding: '4px 0' }}>
+                  <div>{cabinet.name}</div>
+                  <div className="muted" style={{ fontSize: 13, fontWeight: 400 }}>
+                    {cabinet.location}, занято {busy} из {cabinet.cells.length}
+                  </div>
+                </div>
+              }
+              extra={
+                canManageSystem && (
+                  <Flex gap={8}>
+                    <Button size="small" onClick={() => setDialog({ kind: 'cell', cabinet })}>
+                      Добавить ячейку
+                    </Button>
+                    <Dropdown menu={{ items: cabinetMenu(cabinet) }} trigger={['click']}>
+                      <Button size="small">Ещё</Button>
+                    </Dropdown>
+                  </Flex>
+                )
+              }
+            >
+              {cells.length === 0 ? (
+                <Empty
+                  image={Empty.PRESENTED_IMAGE_SIMPLE}
+                  description={cabinet.cells.length === 0 ? 'В шкафу нет ячеек' : 'Ничего не найдено'}
+                />
+              ) : (
+                <div className="cell-grid">
+                  {cells.map((cell) => cellTile(cabinet, cell))}
+                </div>
+              )}
+            </Card>
+          )
+        })}
+      </Flex>
 
       <Modal
         open={dialog !== null}
@@ -214,18 +416,29 @@ export function StoragePage() {
         onCancel={() => setDialog(null)}
         destroyOnHidden
       >
-        <Form<DialogForm> form={form} layout="vertical" preserve={false} onFinish={submitDialog}>
-          {(dialog?.kind === 'cabinet' || dialog?.kind === 'cell' || dialog?.kind === 'item') && (
+        <Form<DialogForm>
+          form={form}
+          layout="vertical"
+          preserve={false}
+          initialValues={initialValues(dialog)}
+          onFinish={submitDialog}
+        >
+          {(kind === 'cabinet' ||
+            kind === 'editCabinet' ||
+            kind === 'cell' ||
+            kind === 'renameCell' ||
+            kind === 'item' ||
+            kind === 'editItem') && (
             <Form.Item name="name" label="Название" rules={[{ required: true, message: 'Введите название' }]}>
               <Input />
             </Form.Item>
           )}
-          {dialog?.kind === 'cabinet' && (
+          {(kind === 'cabinet' || kind === 'editCabinet') && (
             <Form.Item name="location" label="Где стоит" rules={[{ required: true, message: 'Введите место' }]}>
               <Input />
             </Form.Item>
           )}
-          {dialog?.kind === 'item' && (
+          {(kind === 'item' || kind === 'editItem') && (
             <>
               <Form.Item
                 name="unitWeightGrams"
@@ -234,22 +447,27 @@ export function StoragePage() {
               >
                 <InputNumber min={0.1} step={0.1} style={{ width: '100%' }} />
               </Form.Item>
-              <Form.Item name="minQuantity" label="Минимальный остаток, шт." initialValue={0}>
+              <Form.Item name="minQuantity" label="Минимальный остаток, шт.">
                 <InputNumber min={0} style={{ width: '100%' }} />
               </Form.Item>
             </>
           )}
-          {(dialog?.kind === 'replenish' || dialog?.kind === 'adjust') && (
+          {kind === 'move' && (
+            <Form.Item name="cellId" label="Свободная ячейка" rules={[{ required: true, message: 'Выберите ячейку' }]}>
+              <Select options={freeCells} placeholder={freeCells.length === 0 ? 'Свободных ячеек нет' : 'Выберите'} />
+            </Form.Item>
+          )}
+          {(kind === 'replenish' || kind === 'adjust') && (
             <Form.Item
               name="quantity"
-              label={dialog.kind === 'replenish' ? 'Сколько штук добавить' : 'Сколько штук в ячейке сейчас'}
+              label={kind === 'replenish' ? 'Сколько штук добавить' : 'Сколько штук в ячейке на самом деле'}
               rules={[{ required: true, message: 'Введите количество' }]}
             >
-              <InputNumber min={dialog.kind === 'replenish' ? 1 : 0} style={{ width: '100%' }} />
+              <InputNumber min={kind === 'replenish' ? 1 : 0} style={{ width: '100%' }} />
             </Form.Item>
           )}
         </Form>
       </Modal>
-    </Flex>
+    </>
   )
 }
