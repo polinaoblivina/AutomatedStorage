@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react'
-import { Alert, Badge, Card, Col, Descriptions, Empty, Flex, Row, Table, Tag, Typography } from 'antd'
+import { Alert, Card, Col, Empty, Row, Table, Tag } from 'antd'
 import { HubConnectionBuilder, LogLevel } from '@microsoft/signalr'
 import { api, getFreshAccessToken } from '../api/client'
 import type { DeviceEvent, DeviceStatus } from '../api/types'
-import { errorText, formatDateTime, formatGrams } from '../utils/format'
+import { PageHeader } from '../components/PageHeader'
+import { StatusDot } from '../components/StatusDot'
+import { errorText, formatDateTime, formatGrams, formatTime } from '../utils/format'
 
 const EVENTS_LIMIT = 20
 
@@ -11,33 +13,72 @@ function byName(a: DeviceStatus, b: DeviceStatus) {
   return a.name.localeCompare(b.name)
 }
 
-function okTag(value: boolean | null) {
-  if (value === null) return <Tag>нет данных</Tag>
-  return value ? <Tag color="green">норма</Tag> : <Tag color="red">ошибка</Tag>
+function sensor(value: boolean | null) {
+  if (value === null) return <StatusDot tone="muted">нет данных</StatusDot>
+  return value ? <StatusDot tone="success">норма</StatusDot> : <StatusDot tone="danger">ошибка</StatusDot>
 }
 
 function DeviceCard({ device }: { device: DeviceStatus }) {
+  const sessionOpen = device.isOnline && device.state === 'SessionOpen'
+
   return (
     <Card
-      title={device.name}
-      extra={device.isOnline ? <Tag color="green">в сети</Tag> : <Tag color="default">не в сети</Tag>}
+      title={
+        <StatusDot tone={device.isOnline ? 'success' : 'muted'} pulse={device.isOnline}>
+          {device.name}
+        </StatusDot>
+      }
+      extra={
+        device.isOnline ? (
+          <Tag color={sessionOpen ? 'orange' : 'green'}>{sessionOpen ? 'дверь открыта' : 'в сети'}</Tag>
+        ) : (
+          <Tag>не в сети</Tag>
+        )
+      }
+      style={{ height: '100%', opacity: device.isOnline ? 1 : 0.75 }}
     >
-      <Descriptions
-        column={1}
-        size="small"
-        items={[
-          { label: 'Последний сигнал', children: formatDateTime(device.lastSeenUtc) },
-          { label: 'Состояние', children: device.state === 'SessionOpen' ? 'Дверь открыта' : 'Ожидание' },
-          { label: 'Считыватель карт', children: okTag(device.rfidOk) },
-          { label: 'Весы', children: okTag(device.scaleOk) },
-          ...(device.scales ?? []).map((scale, index) => ({
-            label: `Весы ${index + 1}`,
-            children: `${formatGrams(scale.weightGrams)}${scale.ok ? '' : ' (ошибка)'}`,
-          })),
-          { label: 'Прошивка', children: device.firmwareVersion ?? '—' },
-          { label: 'Последнее событие', children: device.lastEvent?.message ?? '—' },
-        ]}
-      />
+      <div className="muted" style={{ fontSize: 12 }}>
+        Общий вес
+      </div>
+      <div className="device-weight">{formatGrams(device.weightGrams)}</div>
+
+      <div style={{ marginTop: 12 }}>
+        <div className="device-row">
+          <span className="muted">Считыватель карт</span>
+          {sensor(device.rfidOk)}
+        </div>
+        <div className="device-row">
+          <span className="muted">Весы</span>
+          {sensor(device.scaleOk)}
+        </div>
+        {(device.scales ?? []).map((scale, index) => (
+          <div key={scale.cellId ?? index} className="device-row">
+            <span className="muted">Весы {index + 1}</span>
+            <StatusDot tone={scale.ok ? 'success' : 'danger'}>{formatGrams(scale.weightGrams)}</StatusDot>
+          </div>
+        ))}
+        <div className="device-row">
+          <span className="muted">Последний сигнал</span>
+          <span>{formatDateTime(device.lastSeenUtc)}</span>
+        </div>
+        <div className="device-row">
+          <span className="muted">Прошивка</span>
+          <span className="mono">{device.firmwareVersion ?? '—'}</span>
+        </div>
+        <div className="device-row">
+          <span className="muted">Адрес</span>
+          <span className="mono">{device.remoteAddress ?? '—'}</span>
+        </div>
+      </div>
+
+      {device.lastEvent && (
+        <div style={{ marginTop: 12, padding: '10px 12px', background: '#f8fafc', borderRadius: 8 }}>
+          <div className="muted" style={{ fontSize: 12 }}>
+            Последнее событие, {formatTime(device.lastEvent.occurredAtUtc)}
+          </div>
+          <div>{device.lastEvent.message}</div>
+        </div>
+      )}
     </Card>
   )
 }
@@ -82,19 +123,26 @@ export function DevicesPage() {
     }
   }, [])
 
-  return (
-    <Flex vertical gap={24}>
-      <Flex align="center" gap={16}>
-        <Typography.Title level={3} style={{ margin: 0 }}>
-          Шкафы
-        </Typography.Title>
-        <Badge status={live ? 'success' : 'default'} text={live ? 'обновляется вживую' : 'нет живого соединения'} />
-      </Flex>
+  const online = devices.filter((d) => d.isOnline).length
 
-      {error && <Alert type="error" title={error} />}
+  return (
+    <>
+      <PageHeader
+        title="Шкафы на связи"
+        subtitle={`В сети ${online} из ${devices.length}`}
+        extra={
+          <StatusDot tone={live ? 'success' : 'muted'} pulse={live}>
+            {live ? 'Обновляется вживую' : 'Нет живого соединения'}
+          </StatusDot>
+        }
+      />
+
+      {error && <Alert type="error" title={error} style={{ marginBottom: 16 }} />}
 
       {devices.length === 0 ? (
-        <Empty description="Ни одно устройство ещё не выходило на связь" />
+        <Card>
+          <Empty description="Ни одно устройство ещё не выходило на связь" />
+        </Card>
       ) : (
         <Row gutter={[16, 16]}>
           {devices.map((device) => (
@@ -105,27 +153,29 @@ export function DevicesPage() {
         </Row>
       )}
 
-      <Typography.Title level={4} style={{ margin: 0 }}>
-        Последние события
-      </Typography.Title>
-      <Table<DeviceEvent>
-        rowKey={(event) => `${event.occurredAtUtc}-${event.deviceName}-${event.type}`}
-        dataSource={events}
-        pagination={false}
-        size="small"
-        columns={[
-          { title: 'Время', dataIndex: 'occurredAtUtc', render: formatDateTime },
-          { title: 'Устройство', dataIndex: 'deviceName' },
-          { title: 'Тип', dataIndex: 'type', render: (type) => (type === 'CardScan' ? 'Карта' : 'Сессия') },
-          { title: 'Пользователь', render: (_, event) => event.userName ?? event.cardUid ?? '—' },
-          {
-            title: 'Результат',
-            dataIndex: 'success',
-            render: (success) => (success ? <Tag color="green">успех</Tag> : <Tag color="red">отказ</Tag>),
-          },
-          { title: 'Сообщение', dataIndex: 'message' },
-        ]}
-      />
-    </Flex>
+      <Card title="Последние события" style={{ marginTop: 16 }} styles={{ body: { padding: 0, overflowX: 'auto' } }}>
+        <Table<DeviceEvent>
+          rowKey={(event) => `${event.occurredAtUtc}-${event.deviceName}-${event.type}`}
+          dataSource={events}
+          pagination={false}
+          locale={{ emptyText: 'Событий пока нет' }}
+          columns={[
+            { title: 'Время', dataIndex: 'occurredAtUtc', render: formatDateTime, width: 170 },
+            { title: 'Шкаф', dataIndex: 'deviceName' },
+            { title: 'Тип', dataIndex: 'type', render: (type) => (type === 'CardScan' ? 'Карта' : 'Сессия') },
+            {
+              title: 'Кто',
+              render: (_, event) => event.userName ?? <span className="mono">{event.cardUid ?? '—'}</span>,
+            },
+            {
+              title: 'Результат',
+              dataIndex: 'success',
+              render: (success) => (success ? <Tag color="green">успех</Tag> : <Tag color="red">отказ</Tag>),
+            },
+            { title: 'Сообщение', dataIndex: 'message' },
+          ]}
+        />
+      </Card>
+    </>
   )
 }
