@@ -9,13 +9,14 @@ static int postJson(const char* path, const String& body, String& response) {
 
     HTTPClient http;
     http.begin(String(URL) + path);
+    http.setReuse(false);
     http.setConnectTimeout(2000);
     http.setTimeout(3000);
     http.addHeader("Content-Type", "application/json");
     http.addHeader("X-Device-Key", DEVICE_KEY);
 
     int code = http.POST(body);
-    response = http.getString();
+    response = code == 204 ? "" : http.getString();
     http.end();
 
     Serial.printf("[%s] code=%d, response=%s\n", path, code, response.c_str());
