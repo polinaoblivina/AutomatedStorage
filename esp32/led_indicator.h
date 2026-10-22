@@ -4,12 +4,16 @@
 #include <Arduino.h>
 #include "config.h"
 
+enum class LedState { Off, Ok, Fail, Active, Warning, Settling, Pending, Alarm };
+
 void ledInit();
 void ledSetWifi(bool on);
 void ledSetRfid(bool on);
-void ledSetScale(int scale, bool on);
+void ledSetScale(int scale, LedState state);
 void ledSetRelay(bool on);
-void ledSetError(bool on);
-void ledBlinkError();
+void ledSetDoor(LedState state);
+void ledSetSession(LedState state);
+void ledSetStatus(LedState state);
+void ledUpdate();
 
 #endif

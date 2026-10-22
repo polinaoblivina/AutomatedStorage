@@ -25,18 +25,34 @@ extern const char* CELL_IDS[SCALE_COUNT];
 #define SCALE_2_FACTOR -381.0
 
 #define RELAY_PIN 27
-#define SESSION_MS 15000
 #define LOCK_OPEN_MS 3000
 #define HEARTBEAT_MS 10000
 
-#define SESSION_RETRY_MS 15000
-#define FIRMWARE_VERSION "1.3.0"
+#define DOOR_SENSOR_ENABLED 1
+#define DOOR_PIN 12
+#define DOOR_CLOSED_LEVEL LOW
 
-#define LED_WIFI_PIN   25
-#define LED_RFID_PIN   26
-#define LED_SCALE1_PIN 32
-#define LED_SCALE2_PIN 15
-#define LED_RELAY_PIN  2
-#define LED_ERROR_PIN  4
+#define SESSION_MS 15000
+#define SESSION_MAX_MS 120000
+#define DOOR_OPEN_WAIT_MS 5000
+#define DOOR_ALARM_MS 60000
+#define STABLE_TOLERANCE_GRAMS 2.0
+#define STABLE_TIME_MS 2000
+#define STABLE_MAX_WAIT_MS 10000
+
+#define SESSION_RETRY_MS 15000
+#define FIRMWARE_VERSION "1.4.0"
+
+#define LED_PIN 5
+#define LED_COUNT 8
+#define LED_BRIGHTNESS 40
+
+#define LED_WIFI        0
+#define LED_RFID        1
+#define LED_SCALE_FIRST 2
+#define LED_RELAY       4
+#define LED_DOOR        5
+#define LED_SESSION     6
+#define LED_STATUS      7
 
 #endif

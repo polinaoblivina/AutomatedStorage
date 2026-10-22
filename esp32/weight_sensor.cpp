@@ -13,6 +13,8 @@ static const float FACTORS[SCALE_COUNT]    = { SCALE_1_FACTOR, SCALE_2_FACTOR };
 static float weights[SCALE_COUNT];
 static bool hasValue[SCALE_COUNT];
 static unsigned long lastDataAt[SCALE_COUNT];
+static float stableRef[SCALE_COUNT];
+static unsigned long stableSince[SCALE_COUNT];
 
 void weightInit() {
     for (int i = 0; i < SCALE_COUNT; i++) {
@@ -36,6 +38,12 @@ void weightUpdate(unsigned long waitMs) {
 
         float value = scales[i].get_units(1);
         weights[i] = hasValue[i] ? weights[i] + SMOOTHING * (value - weights[i]) : value;
+
+        if (!hasValue[i] || fabsf(weights[i] - stableRef[i]) > STABLE_TOLERANCE_GRAMS) {
+            stableRef[i] = weights[i];
+            stableSince[i] = millis();
+        }
+
         hasValue[i] = true;
         lastDataAt[i] = millis();
     }
@@ -49,4 +57,9 @@ bool weightIsAlive(int scale) {
 float weightGet(int scale) {
     if (scale < 0 || scale >= SCALE_COUNT) return 0;
     return weights[scale];
+}
+
+bool weightIsStable(int scale, unsigned long forMs) {
+    if (!weightIsAlive(scale)) return false;
+    return millis() - stableSince[scale] >= forMs;
 }

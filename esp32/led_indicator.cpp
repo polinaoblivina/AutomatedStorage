@@ -1,47 +1,83 @@
 #include "led_indicator.h"
+#include <Adafruit_NeoPixel.h>
 
-static const uint8_t SCALE_LED_PINS[] = { LED_SCALE1_PIN, LED_SCALE2_PIN };
-static const int SCALE_LED_COUNT = sizeof(SCALE_LED_PINS) / sizeof(SCALE_LED_PINS[0]);
+#define BLINK_MS 500
+
+static Adafruit_NeoPixel strip(LED_COUNT, LED_PIN, NEO_GRB + NEO_KHZ800);
+static LedState states[LED_COUNT];
+static bool blinkOn = false;
+static unsigned long lastBlink = 0;
+static bool dirty = true;
+
+static uint32_t colorOf(LedState state) {
+    switch (state) {
+        case LedState::Ok:       return Adafruit_NeoPixel::Color(0, 255, 0);
+        case LedState::Fail:     return Adafruit_NeoPixel::Color(255, 0, 0);
+        case LedState::Active:   return Adafruit_NeoPixel::Color(0, 0, 255);
+        case LedState::Warning:  return Adafruit_NeoPixel::Color(255, 160, 0);
+        case LedState::Settling: return Adafruit_NeoPixel::Color(0, 200, 200);
+        case LedState::Pending:  return Adafruit_NeoPixel::Color(160, 0, 255);
+        case LedState::Alarm:    return blinkOn ? Adafruit_NeoPixel::Color(255, 0, 0) : 0;
+        default:                 return 0;
+    }
+}
+
+static void setLed(int index, LedState state) {
+    if (index < 0 || index >= LED_COUNT || states[index] == state) return;
+    states[index] = state;
+    dirty = true;
+}
 
 void ledInit() {
-    const uint8_t pins[] = {
-        LED_WIFI_PIN, LED_RFID_PIN, LED_SCALE1_PIN, LED_SCALE2_PIN, LED_RELAY_PIN, LED_ERROR_PIN
-    };
-
-    for (uint8_t pin : pins) {
-        pinMode(pin, OUTPUT);
-        digitalWrite(pin, LOW);
-    }
+    strip.begin();
+    strip.setBrightness(LED_BRIGHTNESS);
+    strip.clear();
+    strip.show();
 }
 
 void ledSetWifi(bool on) {
-    digitalWrite(LED_WIFI_PIN, on ? HIGH : LOW);
+    setLed(LED_WIFI, on ? LedState::Ok : LedState::Fail);
 }
 
 void ledSetRfid(bool on) {
-    digitalWrite(LED_RFID_PIN, on ? HIGH : LOW);
+    setLed(LED_RFID, on ? LedState::Ok : LedState::Fail);
 }
 
-void ledSetScale(int scale, bool on) {
-    if (scale < 0 || scale >= SCALE_LED_COUNT) return;
-    digitalWrite(SCALE_LED_PINS[scale], on ? HIGH : LOW);
+void ledSetScale(int scale, LedState state) {
+    if (scale < 0 || scale >= SCALE_COUNT) return;
+    setLed(LED_SCALE_FIRST + scale, state);
 }
 
 void ledSetRelay(bool on) {
-    digitalWrite(LED_RELAY_PIN, on ? HIGH : LOW);
+    setLed(LED_RELAY, on ? LedState::Active : LedState::Off);
 }
 
-void ledSetError(bool on) {
-    digitalWrite(LED_ERROR_PIN, on ? HIGH : LOW);
+void ledSetDoor(LedState state) {
+    setLed(LED_DOOR, state);
 }
 
-void ledBlinkError() {
-    static unsigned long lastBlink = 0;
-    static bool state = false;
+void ledSetSession(LedState state) {
+    setLed(LED_SESSION, state);
+}
 
-    if (millis() - lastBlink > 500) {
+void ledSetStatus(LedState state) {
+    setLed(LED_STATUS, state);
+}
+
+void ledUpdate() {
+    if (millis() - lastBlink >= BLINK_MS) {
         lastBlink = millis();
-        state = !state;
-        digitalWrite(LED_ERROR_PIN, state ? HIGH : LOW);
+        blinkOn = !blinkOn;
+        for (int i = 0; i < LED_COUNT; i++) {
+            if (states[i] == LedState::Alarm) dirty = true;
+        }
     }
+
+    if (!dirty) return;
+    dirty = false;
+
+    for (int i = 0; i < LED_COUNT; i++) {
+        strip.setPixelColor(i, colorOf(states[i]));
+    }
+    strip.show();
 }

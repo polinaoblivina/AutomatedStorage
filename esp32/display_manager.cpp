@@ -34,8 +34,7 @@ void displayAccess(bool granted, const String& cardUid, const String& userName) 
     display.display();
 }
 
-void displayAll(bool wifi, bool rfid, const float* weights, const bool* scaleOk, int count, int pendingSessions) 
-{
+void displayAll(bool wifi, bool rfid, const float* weights, const bool* scaleOk, int count, const String& footer) {
     display.clearDisplay();
     u8g2.setCursor(0, 12);
     u8g2.print("WiFi: ");
@@ -56,10 +55,9 @@ void displayAll(bool wifi, bool rfid, const float* weights, const bool* scaleOk,
         }
     }
 
-    if (pendingSessions > 0) {
+    if (footer.length() > 0) {
         u8g2.setCursor(0, 28 + count * 14);
-        u8g2.print("Не отправлено: ");
-        u8g2.print(pendingSessions);
+        u8g2.print(footer);
     }
 
     display.display();
