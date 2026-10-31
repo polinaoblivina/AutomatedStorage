@@ -1,9 +1,6 @@
-﻿using ServerAutomatedStorage.Domain.Common;
+using ServerAutomatedStorage.Domain.Common;
 using ServerAutomatedStorage.Domain.Entities;
 using ServerAutomatedStorage.Domain.Enums;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace ServerAutomatedStorage.UnitTests.Domain
 {

@@ -1,12 +1,9 @@
-﻿using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
 using NSubstitute;
 using ServerAutomatedStorage.Infrastructure.Authentication;
 using ServerAutomatedStorage.WebAPI.Contracts;
 using ServerAutomatedStorage.WebAPI.Services;
-using System;
-using System.Collections.Generic;
-using System.Text;
 using static ServerAutomatedStorage.WebAPI.Contracts.DeviceMonitorResponses;
 
 namespace ServerAutomatedStorage.UnitTests.WebAPI
@@ -55,7 +52,7 @@ namespace ServerAutomatedStorage.UnitTests.WebAPI
         {
             _monitor.RecordHeartbeat("cabinet-1", Heartbeat(), null);
 
-            _time.Advance(TimeSpan.FromSeconds(31)); 
+            _time.Advance(TimeSpan.FromSeconds(31));
 
             Assert.False(_monitor.GetStatus("cabinet-1").IsOnline);
         }
