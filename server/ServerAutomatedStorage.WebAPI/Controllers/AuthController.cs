@@ -12,7 +12,7 @@ namespace ServerAutomatedStorage.WebAPI.Controllers
 {
     [Authorize]
     [Route("api/auth")]
-    public sealed class AuthController(ICurrentUser currentUser) : ApiControllerBase
+    public sealed class AuthController(ICurrentUser currentUser, ILogger<AuthController> logger) : ApiControllerBase
     {
         private const string RefreshCookieName = "refresh_token";
         private const string RefreshCookiePath = "/api/auth";
@@ -26,6 +26,8 @@ namespace ServerAutomatedStorage.WebAPI.Controllers
         {
             var result = await Sender.Send(command, ct);
             SetRefreshCookie(result.RefreshToken);
+            if (logger.IsEnabled(LogLevel.Information))
+                logger.LogInformation("Вход выполнен: пользователь {UserId}", result.Response.User.Id);
             return Ok(result.Response);
         }
 

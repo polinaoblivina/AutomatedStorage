@@ -1,12 +1,12 @@
-﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
+﻿using System.Security.Claims;
+using System.Text;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
 using ServerAutomatedStorage.Application.Common.Interfaces;
 using ServerAutomatedStorage.Domain.Enums;
 using ServerAutomatedStorage.Domain.Interfaces;
-using System.Security.Claims;
-using System.Text;
 
 namespace ServerAutomatedStorage.Infrastructure.Authentication
 {

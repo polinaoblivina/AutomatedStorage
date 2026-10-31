@@ -1,7 +1,7 @@
-﻿using Microsoft.Extensions.Options;
+using System.Collections.Concurrent;
+using Microsoft.Extensions.Options;
 using ServerAutomatedStorage.Infrastructure.Authentication;
 using ServerAutomatedStorage.WebAPI.Contracts;
-using System.Collections.Concurrent;
 using static ServerAutomatedStorage.WebAPI.Contracts.DeviceMonitorResponses;
 
 namespace ServerAutomatedStorage.WebAPI.Services
@@ -50,11 +50,10 @@ namespace ServerAutomatedStorage.WebAPI.Services
         {
             lock (_eventsLock)
             {
-                return _events
+                return [.. _events
                     .Where(e => sinceUtc is null || e.OccurredAtUtc > sinceUtc)
                     .Where(e => type is null || e.Type == type)
-                    .Take(take)
-                    .ToList();
+                    .Take(take)];
             }
         }
 
@@ -62,19 +61,18 @@ namespace ServerAutomatedStorage.WebAPI.Services
         {
             var now = timeProvider.GetUtcNow().UtcDateTime;
 
-            return options.Get(DeviceApiKeyDefaults.Scheme).Devices
+            return [.. options.Get(DeviceApiKeyDefaults.Scheme).Devices
                 .Select(d => d.Name)
                 .Concat(_devices.Keys)
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .OrderBy(n => n)
-                .Select(name => BuildStatus(name, now))
-                .ToList();
+                .Select(name => BuildStatus(name, now))];
         }
 
         public DeviceStatusDTO GetStatus(string deviceName) =>
             BuildStatus(deviceName, timeProvider.GetUtcNow().UtcDateTime);
 
-                private DeviceStatusDTO BuildStatus(string name, DateTime now)
+        private DeviceStatusDTO BuildStatus(string name, DateTime now)
         {
             if (!_devices.TryGetValue(name, out var snapshot))
                 return new DeviceStatusDTO(name, false, null, null, null, null, null, null, null, null, null);

@@ -1,10 +1,8 @@
-﻿using Microsoft.Extensions.Options;
-using ServerAutomatedStorage.Application.Common.Interfaces;
-using System;
-using System.Buffers.Text;
-using System.Collections.Generic;
+﻿using System.Buffers.Text;
 using System.Security.Cryptography;
 using System.Text;
+using Microsoft.Extensions.Options;
+using ServerAutomatedStorage.Application.Common.Interfaces;
 
 namespace ServerAutomatedStorage.Infrastructure.Authentication
 {

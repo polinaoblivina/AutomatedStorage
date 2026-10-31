@@ -2,9 +2,6 @@
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using ServerAutomatedStorage.Domain.Entities;
 using ServerAutomatedStorage.Infrastructure.Identity;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace ServerAutomatedStorage.Infrastructure.Persistence.Configurations
 {

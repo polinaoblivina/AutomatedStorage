@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace ServerAutomatedStorage.Application.Features.Access.DTOs
+﻿namespace ServerAutomatedStorage.Application.Features.Access.DTOs
 {
     public enum CardCheckResult
     {

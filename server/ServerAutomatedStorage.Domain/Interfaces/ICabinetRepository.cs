@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using ServerAutomatedStorage.Domain.Entities;
+﻿using ServerAutomatedStorage.Domain.Entities;
 
 namespace ServerAutomatedStorage.Domain.Interfaces
 {

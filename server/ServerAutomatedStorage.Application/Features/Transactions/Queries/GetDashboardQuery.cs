@@ -4,9 +4,6 @@ using ServerAutomatedStorage.Application.Features.Items.DTOs;
 using ServerAutomatedStorage.Application.Features.Transactions.DTOs;
 using ServerAutomatedStorage.Domain.Enums;
 using ServerAutomatedStorage.Domain.Interfaces;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace ServerAutomatedStorage.Application.Features.Transactions.Queries
 {
@@ -35,7 +32,10 @@ namespace ServerAutomatedStorage.Application.Features.Transactions.Queries
             var offset = TimeSpan.FromMinutes(request.TimezoneOffsetMinutes);
             var nowUtc = timeProvider.GetUtcNow().UtcDateTime;
 
-            DateOnly LocalDay(DateTime utc) => DateOnly.FromDateTime(utc + offset);
+            DateOnly LocalDay(DateTime utc)
+            {
+                return DateOnly.FromDateTime(utc + offset);
+            }
 
             var today = LocalDay(nowUtc);
             var firstDay = today.AddDays(1 - request.Days);
@@ -49,7 +49,7 @@ namespace ServerAutomatedStorage.Application.Features.Transactions.Queries
             var byDay = summaries.ToLookup(s => LocalDay(s.CreatedAtUtc));
 
             var daily = Enumerable.Range(0, request.Days)
-                .Select(i => firstDay.AddDays(i))
+                .Select(firstDay.AddDays)
                 .Select(day => new DailyMovementDTO(
                     day,
                     byDay[day].Where(s => s.Type == TransactionType.Withdrawal).Sum(s => s.Quantity),
@@ -87,7 +87,7 @@ namespace ServerAutomatedStorage.Application.Features.Transactions.Queries
                 byDay[today].Where(s => s.Type == TransactionType.Withdrawal).Sum(s => s.Quantity),
                 byDay[today].Count());
 
-            return new DashboardDTO(totals, daily, topItems, topUsers, lowStock.Select(ItemDTO.From).ToList());
+            return new DashboardDTO(totals, daily, topItems, topUsers, [.. lowStock.Select(ItemDTO.From)]);
         }
     }
 }

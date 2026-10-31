@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using Scalar.AspNetCore;
 using ServerAutomatedStorage.Application;
 using ServerAutomatedStorage.Application.Common.Interfaces;
@@ -8,7 +9,6 @@ using ServerAutomatedStorage.WebAPI.Hubs;
 using ServerAutomatedStorage.WebAPI.Middleware;
 using ServerAutomatedStorage.WebAPI.OpenApi;
 using ServerAutomatedStorage.WebAPI.Services;
-using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -31,7 +31,9 @@ builder.Services.AddProblemDetails(options =>
 builder.Services.AddControllers(options =>
     options.SuppressImplicitRequiredAttributeForNonNullableReferenceTypes = true)
     .AddJsonOptions(options =>
-        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()))
+    .ConfigureApiBehaviorOptions(options =>
+        options.InvalidModelStateResponseFactory = InvalidModelStateResponse.Create);
 
 builder.Services.AddSignalR()
       .AddJsonProtocol(options =>
@@ -39,7 +41,7 @@ builder.Services.AddSignalR()
 
 builder.Services.AddOpenApi(options => options.AddDocumentTransformer<SecuritySchemesTransformer>());
 builder.Services.AddHealthChecks().AddDbContextCheck<AppDbContext>();
-    
+
 
 var app = builder.Build();
 

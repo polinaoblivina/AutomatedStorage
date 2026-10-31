@@ -1,7 +1,4 @@
 ﻿using ServerAutomatedStorage.Domain.Common;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace ServerAutomatedStorage.Domain.Entities
 {
@@ -9,7 +6,7 @@ namespace ServerAutomatedStorage.Domain.Entities
     {
         public string Name { get; private set; } = null!;
         public string Location { get; private set; } = null!;
-        private readonly List<Cell> _cells = new();
+        private readonly List<Cell> _cells = [];
         public IReadOnlyCollection<Cell> Cells => _cells.AsReadOnly();
 
         private Cabinet() { }

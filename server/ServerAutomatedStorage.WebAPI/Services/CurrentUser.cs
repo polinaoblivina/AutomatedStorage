@@ -1,7 +1,7 @@
-﻿using ServerAutomatedStorage.Application.Common.Exceptions;
+﻿using System.Security.Claims;
+using ServerAutomatedStorage.Application.Common.Exceptions;
 using ServerAutomatedStorage.Application.Common.Interfaces;
 using ServerAutomatedStorage.Infrastructure.Authentication;
-using System.Security.Claims;
 
 namespace ServerAutomatedStorage.WebAPI.Services
 {

@@ -92,7 +92,8 @@ namespace ServerAutomatedStorage.Infrastructure.Persistence
             }
 
             await transaction.CommitAsync(ct);
-            logger.LogInformation("Seeded admin {Email}", seed.AdminEmail);
+            if (logger.IsEnabled(LogLevel.Information))
+                logger.LogInformation("Seeded admin {Email}", seed.AdminEmail);
         }
     }
 }

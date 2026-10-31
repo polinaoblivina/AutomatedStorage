@@ -1,14 +1,13 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using ServerAutomatedStorage.Application.Features.Access.Commands;
 using ServerAutomatedStorage.Application.Features.Access.DTOs;
 using ServerAutomatedStorage.Domain.Enums;
 using ServerAutomatedStorage.WebAPI.Authorization;
 using ServerAutomatedStorage.WebAPI.Contracts;
-using ServerAutomatedStorage.WebAPI.Services;
-using Microsoft.AspNetCore.SignalR;
 using ServerAutomatedStorage.WebAPI.Hubs;
-
+using ServerAutomatedStorage.WebAPI.Services;
 using static ServerAutomatedStorage.WebAPI.Contracts.DeviceMonitorResponses;
 
 namespace ServerAutomatedStorage.WebAPI.Controllers
@@ -29,8 +28,9 @@ namespace ServerAutomatedStorage.WebAPI.Controllers
         {
             var response = await Sender.Send(new CheckCardCommand(request.CardUid), ct);
 
-            logger.LogInformation("Устройство {Device}: карта {CardUid} -> {Result}",
-                DeviceName, request.CardUid, response.Result);
+            if (logger.IsEnabled(LogLevel.Information))
+                logger.LogInformation("Устройство {Device}: карта {CardUid} -> {Result}",
+                    DeviceName, request.CardUid, response.Result);
             var deviceEvent = monitor.RecordEvent(DeviceName, DeviceEventType.CardScan,
                    NormalizeCardUid(request.CardUid), response.UserName, response.AccessGranted, response.Message);
             await PushAsync(deviceEvent);
@@ -47,8 +47,9 @@ namespace ServerAutomatedStorage.WebAPI.Controllers
         {
             var response = await Sender.Send(command, ct);
 
-            logger.LogInformation("Устройство {Device}: сессия {SessionId}, карта {CardUid}, ячеек {Count} -> {Message}",
-                DeviceName, command.SessionId, command.CardUid, command.Cells.Count, response.Message);
+            if (logger.IsEnabled(LogLevel.Information))
+                logger.LogInformation("Устройство {Device}: сессия {SessionId}, карта {CardUid}, ячеек {Count} -> {Message}",
+                    DeviceName, command.SessionId, command.CardUid, command.Cells.Count, response.Message);
 
             if (!response.AlreadyRecorded)
             {

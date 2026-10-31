@@ -1,9 +1,6 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using ServerAutomatedStorage.Domain.Entities;
 using ServerAutomatedStorage.Domain.Interfaces;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace ServerAutomatedStorage.Infrastructure.Persistence.Repositories
 {
@@ -12,9 +9,9 @@ namespace ServerAutomatedStorage.Infrastructure.Persistence.Repositories
         public async Task<Cell?> GetWithItemAsync(Guid id, CancellationToken ct = default)
         {
             return await DbSet
-                        .Include (c => c.Item)
+                        .Include(c => c.Item)
                         .Include(c => c.Cabinet)
-                        .FirstOrDefaultAsync (c => c.Id == id, ct);
+                        .FirstOrDefaultAsync(c => c.Id == id, ct);
         }
     }
 }

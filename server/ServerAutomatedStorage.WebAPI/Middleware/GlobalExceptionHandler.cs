@@ -1,10 +1,12 @@
-﻿using FluentValidation;
+﻿using System.Security.Claims;
+using FluentValidation;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using ServerAutomatedStorage.Application.Common.Exceptions;
 using ServerAutomatedStorage.Domain.Common;
+using ServerAutomatedStorage.Infrastructure.Authentication;
 
 namespace ServerAutomatedStorage.WebAPI.Middleware
 {
@@ -40,8 +42,10 @@ namespace ServerAutomatedStorage.WebAPI.Middleware
             if (problem.Status >= 500)
                 logger.LogError(exception, "Unhandled exception for {Method} {Path}",
                     httpContext.Request.Method, httpContext.Request.Path);
-            else
-                logger.LogInformation("Request failed with {Status}: {Message}", problem.Status, exception.Message);
+            else if (logger.IsEnabled(LogLevel.Information))
+                logger.LogInformation("Запрос {Method} {Path} отклонён с кодом {Status}: {Message} (пользователь {UserId})",
+                    httpContext.Request.Method, httpContext.Request.Path, problem.Status, exception.Message,
+                    httpContext.User.FindFirstValue(AuthClaims.Subject) ?? "аноним");
 
             httpContext.Response.StatusCode = problem.Status!.Value;
 

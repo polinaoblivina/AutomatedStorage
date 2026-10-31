@@ -2,9 +2,6 @@
 using ServerAutomatedStorage.Application.Common.Interfaces;
 using ServerAutomatedStorage.Application.Features.Users.DTOs;
 using ServerAutomatedStorage.Domain.Interfaces;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace ServerAutomatedStorage.Application.Features.Roles.Queries
 {
@@ -18,9 +15,7 @@ namespace ServerAutomatedStorage.Application.Features.Roles.Queries
             var users = await userRepository.GetAllWithRolesAsync(cancellationToken);
             var emails = await identityService.GetEmailsAsync(users.Select(u => u.Id), cancellationToken);
 
-            return users
-                .Select(u => UserDTO.From(u, emails.GetValueOrDefault(u.Id)))
-                .ToList();
+            return [.. users.Select(u => UserDTO.From(u, emails.GetValueOrDefault(u.Id)))];
         }
     }
 }

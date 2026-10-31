@@ -1,8 +1,5 @@
 ﻿using ServerAutomatedStorage.Domain.Common;
 using ServerAutomatedStorage.Domain.Enums;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace ServerAutomatedStorage.Domain.Entities
 {
@@ -15,7 +12,7 @@ namespace ServerAutomatedStorage.Domain.Entities
         public Guid RoleId { get; private set; }
         public Role Role { get; private set; } = null!;
 
-        private readonly List<Transaction> _transactions = new();
+        private readonly List<Transaction> _transactions = [];
         public IReadOnlyCollection<Transaction> Transactions => _transactions.AsReadOnly();
 
         private User() { }

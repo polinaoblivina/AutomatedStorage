@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ServerAutomatedStorage.Application.Features.Cabinets.Commands;
 using ServerAutomatedStorage.Application.Features.Cabinets.DTOs;
@@ -70,7 +70,7 @@ namespace ServerAutomatedStorage.WebAPI.Controllers
         [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
         public async Task<ActionResult<CellDTO>> RenameCell(Guid id, Guid cellId, RenameCellRequest request, CancellationToken ct)
             => Ok(await Sender.Send(new RenameCellCommand(id, cellId, request.Name), ct));
-     
+
         [HttpDelete("{id:guid}/cells/{cellId:guid}")]
         [HasPermission(Permission.ManageSystem)]
         [ProducesResponseType(StatusCodes.Status204NoContent)]

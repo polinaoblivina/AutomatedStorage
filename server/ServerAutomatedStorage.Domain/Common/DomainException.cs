@@ -1,11 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace ServerAutomatedStorage.Domain.Common
+﻿namespace ServerAutomatedStorage.Domain.Common
 {
-    public class DomainException : Exception
+    public class DomainException(string message) : Exception(message)
     {
-        public DomainException(string message) : base(message) { }
     }
 }

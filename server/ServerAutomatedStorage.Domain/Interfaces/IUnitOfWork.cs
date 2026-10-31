@@ -1,9 +1,4 @@
-﻿using ServerAutomatedStorage.Domain.Common;
-using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace ServerAutomatedStorage.Domain.Interfaces
+﻿namespace ServerAutomatedStorage.Domain.Interfaces
 {
     public interface IUnitOfWork
     {

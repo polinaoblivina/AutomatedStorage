@@ -1,10 +1,7 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using ServerAutomatedStorage.Domain.Entities;
 using ServerAutomatedStorage.Infrastructure.Identity;
-using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace ServerAutomatedStorage.Infrastructure.Persistence
 {

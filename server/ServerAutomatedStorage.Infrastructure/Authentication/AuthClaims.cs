@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IdentityModel.Tokens.Jwt;
-using System.Text;
+﻿using System.IdentityModel.Tokens.Jwt;
 
 namespace ServerAutomatedStorage.Infrastructure.Authentication
 {

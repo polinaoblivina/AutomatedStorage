@@ -1,0 +1,40 @@
+root = true
+
+[*]
+indent_style = space
+indent_size = 4
+trim_trailing_whitespace = true
+
+[*.{csproj,slnx,json}]
+indent_size = 2
+
+[*.cs]
+dotnet_analyzer_diagnostic.category-Style.severity = warning
+dotnet_analyzer_diagnostic.category-Design.severity = warning
+dotnet_analyzer_diagnostic.category-Performance.severity = warning
+dotnet_analyzer_diagnostic.category-Reliability.severity = warning
+dotnet_analyzer_diagnostic.category-Usage.severity = warning
+dotnet_analyzer_diagnostic.category-Maintainability.severity = warning
+dotnet_analyzer_diagnostic.category-Naming.severity = warning
+
+dotnet_diagnostic.CA1707.severity = none
+dotnet_diagnostic.EnableGenerateDocumentationFile.severity = none
+dotnet_diagnostic.CA1711.severity = none
+dotnet_diagnostic.CA1725.severity = none
+dotnet_diagnostic.CA1515.severity = none
+dotnet_diagnostic.CA1062.severity = none
+dotnet_diagnostic.CA1848.severity = none
+dotnet_diagnostic.CA2007.severity = none
+dotnet_diagnostic.IDE0058.severity = none
+dotnet_diagnostic.IDE0008.severity = none
+dotnet_diagnostic.IDE0011.severity = none
+dotnet_diagnostic.IDE0022.severity = none
+dotnet_diagnostic.IDE0046.severity = none
+dotnet_diagnostic.IDE0160.severity = none
+
+csharp_style_namespace_declaration = block_scoped:warning
+dotnet_sort_system_directives_first = true
+csharp_new_line_before_open_brace = all
+
+[**/Migrations/*.cs]
+generated_code = true

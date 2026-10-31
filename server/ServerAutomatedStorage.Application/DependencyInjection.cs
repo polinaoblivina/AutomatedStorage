@@ -1,11 +1,8 @@
-﻿using FluentValidation;
-using Microsoft.Extensions.DependencyInjection;
-using ServerAutomatedStorage.Application.Common.Behaviors;
-using System;
-using System.Collections.Generic;
 using System.Globalization;
 using System.Reflection;
-using System.Text;
+using FluentValidation;
+using Microsoft.Extensions.DependencyInjection;
+using ServerAutomatedStorage.Application.Common.Behaviors;
 
 namespace ServerAutomatedStorage.Application
 {
@@ -14,10 +11,11 @@ namespace ServerAutomatedStorage.Application
         public static IServiceCollection AddApplication(this IServiceCollection services)
         {
             var assembly = Assembly.GetExecutingAssembly();
-            services.AddMediatR(cfg => 
+            services.AddMediatR(cfg =>
                 {
                     cfg.RegisterServicesFromAssembly(assembly);
                     cfg.AddOpenBehavior(typeof(ValidationBehavior<,>));
+                    cfg.AddOpenBehavior(typeof(LoggingBehavior<,>));
                 });
             ValidatorOptions.Global.LanguageManager.Culture = new CultureInfo("ru");
             services.AddValidatorsFromAssembly(assembly);

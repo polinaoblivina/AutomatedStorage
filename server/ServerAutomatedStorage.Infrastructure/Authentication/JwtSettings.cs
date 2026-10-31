@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace ServerAutomatedStorage.Infrastructure.Authentication
+﻿namespace ServerAutomatedStorage.Infrastructure.Authentication
 {
     public sealed class JwtSettings
     {

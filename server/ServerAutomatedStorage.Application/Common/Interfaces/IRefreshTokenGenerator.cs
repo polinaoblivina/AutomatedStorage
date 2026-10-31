@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace ServerAutomatedStorage.Application.Common.Interfaces
+﻿namespace ServerAutomatedStorage.Application.Common.Interfaces
 {
     public sealed record NewRefreshToken(string Token, string TokenHash, DateTime ExpiresAtUtc);
 

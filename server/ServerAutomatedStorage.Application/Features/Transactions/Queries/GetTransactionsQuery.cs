@@ -4,9 +4,6 @@ using ServerAutomatedStorage.Application.Common.Models;
 using ServerAutomatedStorage.Application.Features.Transactions.DTOs;
 using ServerAutomatedStorage.Domain.Enums;
 using ServerAutomatedStorage.Domain.Interfaces;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace ServerAutomatedStorage.Application.Features.Transactions.Queries
 {
@@ -23,7 +20,7 @@ namespace ServerAutomatedStorage.Application.Features.Transactions.Queries
     {
         public GetTransactionsValidator()
         {
-            RuleFor(x => x.Page).GreaterThanOrEqualTo(1);
+            RuleFor(x => x.Page).InclusiveBetween(1, 100_000);
             RuleFor(x => x.PageSize).InclusiveBetween(1, 200);
             RuleFor(x => x.Type).IsInEnum().When(x => x.Type is not null);
             RuleFor(x => x.ToUtc).GreaterThanOrEqualTo(x => x.FromUtc)
@@ -45,7 +42,7 @@ namespace ServerAutomatedStorage.Application.Features.Transactions.Queries
                 filter, (request.Page - 1) * request.PageSize, request.PageSize, cancellationToken);
 
             return new PagedList<TransactionDTO>(
-                items.Select(TransactionDTO.From).ToList(), request.Page, request.PageSize, total);
+                [.. items.Select(TransactionDTO.From)], request.Page, request.PageSize, total);
         }
 
         private static DateTime? AsUtc(DateTime? value) => value switch

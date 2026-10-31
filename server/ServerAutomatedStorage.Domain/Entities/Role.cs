@@ -1,9 +1,5 @@
 ﻿using ServerAutomatedStorage.Domain.Common;
 using ServerAutomatedStorage.Domain.Enums;
-using System;
-using System.Collections.Generic;
-using System.Security;
-using System.Text;
 
 namespace ServerAutomatedStorage.Domain.Entities
 {
@@ -12,7 +8,7 @@ namespace ServerAutomatedStorage.Domain.Entities
         public string Name { get; private set; } = null!;
         public Permission Permissions { get; private set; }
 
-        private readonly List<User> _users = new();
+        private readonly List<User> _users = [];
         public IReadOnlyCollection<User> Users => _users.AsReadOnly();
         private Role() { }
         public Role(string name, Permission permission)

@@ -1,8 +1,5 @@
-﻿using ServerAutomatedStorage.Domain.Common;
+using ServerAutomatedStorage.Domain.Common;
 using ServerAutomatedStorage.Domain.ValueObjects;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 
 namespace ServerAutomatedStorage.Domain.Entities
@@ -84,6 +81,6 @@ namespace ServerAutomatedStorage.Domain.Entities
 
             return diff > 0 ? WeightChangeResult.Withdrawn(quantity) : WeightChangeResult.Added(quantity);
         }
-    
+
     }
 }

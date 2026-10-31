@@ -1,9 +1,6 @@
 ﻿using MediatR;
 using ServerAutomatedStorage.Application.Features.Cabinets.DTOs;
 using ServerAutomatedStorage.Domain.Interfaces;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace ServerAutomatedStorage.Application.Features.Cabinets.Queries
 {
@@ -14,7 +11,7 @@ namespace ServerAutomatedStorage.Application.Features.Cabinets.Queries
         public async Task<IReadOnlyList<CabinetDTO>> Handle(GetCabinetsQuery request, CancellationToken cancellationToken)
         {
             var cabinets = await cabinetRepository.GetAllWithCellsAsync(cancellationToken);
-            return cabinets.Select(CabinetDTO.From).ToList();
+            return [.. cabinets.Select(CabinetDTO.From)];
         }
     }
 }

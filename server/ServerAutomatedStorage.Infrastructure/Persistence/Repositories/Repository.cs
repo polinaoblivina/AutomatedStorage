@@ -1,16 +1,13 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using ServerAutomatedStorage.Domain.Common;
 using ServerAutomatedStorage.Domain.Interfaces;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace ServerAutomatedStorage.Infrastructure.Persistence.Repositories
 {
     public class Repository<T>(AppDbContext context) : IRepository<T> where T : Entity
     {
-        protected readonly AppDbContext Context = context;
-        protected readonly DbSet<T> DbSet = context.Set<T>();
+        protected AppDbContext Context { get; } = context;
+        protected DbSet<T> DbSet { get; } = context.Set<T>();
 
         public async Task<T?> GetByIdAsync(Guid id, CancellationToken ct = default) =>
             await DbSet.FirstOrDefaultAsync(e => e.Id == id, ct);

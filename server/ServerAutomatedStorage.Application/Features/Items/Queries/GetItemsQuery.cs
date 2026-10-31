@@ -1,9 +1,6 @@
 ﻿using MediatR;
 using ServerAutomatedStorage.Application.Features.Items.DTOs;
 using ServerAutomatedStorage.Domain.Interfaces;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace ServerAutomatedStorage.Application.Features.Items.Queries
 {
@@ -15,7 +12,7 @@ namespace ServerAutomatedStorage.Application.Features.Items.Queries
         public async Task<IReadOnlyList<ItemDTO>> Handle(GetItemsQuery request, CancellationToken cancellationToken)
         {
             var items = await itemRepository.GetAllWithCellAsync(request.IncludeArchived, cancellationToken);
-            return items.Select(ItemDTO.From).ToList();
+            return [.. items.Select(ItemDTO.From)];
         }
     }
 }
