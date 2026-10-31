@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { api, refreshSession, saveSession } from '../api/client'
 import type { LoginResponse, User } from '../api/types'
 import { AuthContext } from './AuthContext'
@@ -6,25 +6,29 @@ import { AuthContext } from './AuthContext'
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
+  const signedInByLogin = useRef(false)
 
   useEffect(() => {
     refreshSession().then((session) => {
-      setUser(session?.user ?? null)
+      if (!signedInByLogin.current) setUser(session?.user ?? null)
       setLoading(false)
     })
   }, [])
 
-  async function login(email: string, password: string) {
+  const login = useCallback(async (email: string, password: string) => {
     const session = await api<LoginResponse>('/auth/login', { method: 'POST', body: { email, password } })
+    signedInByLogin.current = true
     saveSession(session)
     setUser(session.user)
-  }
+  }, [])
 
-  async function logout() {
+  const logout = useCallback(async () => {
     await api('/auth/logout', { method: 'POST' }).catch(() => undefined)
     saveSession(null)
     setUser(null)
-  }
+  }, [])
 
-  return <AuthContext.Provider value={{ user, loading, login, logout }}>{children}</AuthContext.Provider>
+  const value = useMemo(() => ({ user, loading, login, logout }), [user, loading, login, logout])
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

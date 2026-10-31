@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type MouseEvent } from 'react'
 import { Avatar, Button, Layout, Menu } from 'antd'
 import { Outlet, useLocation, useNavigate } from 'react-router'
 import type { Permission } from '../api/types'
@@ -31,6 +31,12 @@ export function AppLayout() {
     if (mobile) setCollapsed(true)
   }
 
+  function handleBrandClick(event: MouseEvent<HTMLAnchorElement>) {
+    event.preventDefault()
+    navigate('/dashboard')
+    if (mobile) setCollapsed(true)
+  }
+
   async function handleLogout() {
     await logout()
     navigate('/login')
@@ -51,11 +57,11 @@ export function AppLayout() {
         }}
       >
         <div className="sider-inner">
-          <div className="brand">
+          <a className="brand" href="/dashboard" onClick={handleBrandClick}>
             <span className="brand-mark">SS</span>
             <span className="brand-name">SmartStorage</span>
             <div className="brand-sub">Панель склада</div>
-          </div>
+          </a>
           <Menu
             theme="dark"
             mode="inline"
@@ -79,7 +85,9 @@ export function AppLayout() {
       </Layout.Sider>
       <Layout>
         <div className="mobile-bar">
-          <strong>SmartStorage</strong>
+          <a className="mobile-brand" href="/dashboard" onClick={handleBrandClick}>
+            SmartStorage
+          </a>
           <Button onClick={() => setCollapsed(!collapsed)}>{collapsed ? 'Меню' : 'Закрыть'}</Button>
         </div>
         <Layout.Content className="content">

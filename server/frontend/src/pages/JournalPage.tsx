@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Alert, Button, Card, DatePicker, Flex, Segmented, Select, Table, Tag } from 'antd'
 import type { Dayjs } from 'dayjs'
 import { api } from '../api/client'
@@ -29,7 +29,6 @@ export function JournalPage() {
   const [filters, setFilters] = useState<Filters>({ type: 'All', range: null })
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(20)
-  const [reloadKey, setReloadKey] = useState(0)
   const [data, setData] = useState<PagedList<Transaction> | null>(null)
   const [users, setUsers] = useState<User[]>([])
   const [items, setItems] = useState<Item[]>([])
@@ -49,7 +48,7 @@ export function JournalPage() {
     }
   }, [canSeeUsers])
 
-  useEffect(() => {
+  const load = useCallback(() => {
     const query = new URLSearchParams({ page: String(page), pageSize: String(pageSize) })
     if (filters.type !== 'All') query.set('type', filters.type)
     if (filters.userId) query.set('userId', filters.userId)
@@ -65,7 +64,11 @@ export function JournalPage() {
       })
       .catch((e) => setError(errorText(e)))
       .finally(() => setLoading(false))
-  }, [filters, page, pageSize, reloadKey])
+  }, [filters, page, pageSize])
+
+  useEffect(() => {
+    load()
+  }, [load])
 
   function changeFilters(patch: Partial<Filters>) {
     setLoading(true)
@@ -81,7 +84,7 @@ export function JournalPage() {
 
   function reload() {
     setLoading(true)
-    setReloadKey((key) => key + 1)
+    load()
   }
 
   const hasFilters = filters.type !== 'All' || filters.range !== null || filters.userId || filters.itemId

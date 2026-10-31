@@ -12,8 +12,10 @@ export class ApiError extends Error {
 let accessToken: string | null = null
 let expiresAt = 0
 let refreshing: Promise<LoginResponse | null> | null = null
+let sessionVersion = 0
 
 export function saveSession(response: LoginResponse | null) {
+  sessionVersion += 1
   accessToken = response?.token ?? null
   expiresAt = response ? new Date(response.expiresAtUtc).getTime() : 0
 }
@@ -27,11 +29,13 @@ async function postRefresh(): Promise<Response> {
 }
 
 export function refreshSession(): Promise<LoginResponse | null> {
+  const startedAtVersion = sessionVersion
+
   refreshing ??= postRefresh()
     .then(async (response) => (response.ok ? ((await response.json()) as LoginResponse) : null))
     .catch(() => null)
     .then((session) => {
-      saveSession(session)
+      if (sessionVersion === startedAtVersion) saveSession(session)
       return session
     })
     .finally(() => {

@@ -454,7 +454,12 @@ export function StoragePage() {
           )}
           {kind === 'move' && (
             <Form.Item name="cellId" label="Свободная ячейка" rules={[{ required: true, message: 'Выберите ячейку' }]}>
-              <Select options={freeCells} placeholder={freeCells.length === 0 ? 'Свободных ячеек нет' : 'Выберите'} />
+              <Select
+                showSearch
+                optionFilterProp="label"
+                options={freeCells}
+                placeholder={freeCells.length === 0 ? 'Свободных ячеек нет' : 'Выберите'}
+              />
             </Form.Item>
           )}
           {(kind === 'replenish' || kind === 'adjust') && (

@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router'
 import { AppLayout } from './components/AppLayout'
 import { RequireAuth } from './components/RequireAuth'
+import { RequirePermission } from './components/RequirePermission'
 import { DashboardPage } from './pages/DashboardPage'
 import { DevicesPage } from './pages/DevicesPage'
 import { JournalPage } from './pages/JournalPage'
@@ -24,7 +25,14 @@ export default function App() {
         <Route path="/devices" element={<DevicesPage />} />
         <Route path="/storage" element={<StoragePage />} />
         <Route path="/journal" element={<JournalPage />} />
-        <Route path="/users" element={<UsersPage />} />
+        <Route
+          path="/users"
+          element={
+            <RequirePermission permission="ManageUsers">
+              <UsersPage />
+            </RequirePermission>
+          }
+        />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
