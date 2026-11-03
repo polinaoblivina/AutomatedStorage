@@ -1,0 +1,11 @@
+**/bin/
+**/obj/
+**/node_modules/
+**/.vs/
+server/ServerAutomatedStorage.WebAPI/wwwroot/
+server/tests/
+server/frontend/e2e/
+server/frontend/dist/
+esp32/
+.git/
+.env
