@@ -79,15 +79,14 @@
 
 ## Запуск в Docker
 
-Самый простой способ. Нужен только [Docker Desktop](https://www.docker.com/products/docker-desktop/): ни .NET, ни Node.js,
-ни PostgreSQL, ни Redis ставить не нужно. Сервер, веб-панель, PostgreSQL и Redis запускаются вместе.
+Самый простой способ. Нужен только [Docker Desktop](https://www.docker.com/products/docker-desktop/). Сервер, веб-панель, PostgreSQL и Redis запускаются вместе.
 
 ```powershell
 copy .env.example .env
 docker compose up -d --build
 ```
 
-Перед запуском откройте `.env` и заполните значения (файл не попадает в git):
+Перед запуском откройте `.env` и заполните значения:
 
 | Переменная | Что это |
 |---|---|
@@ -106,27 +105,13 @@ http://localhost:5037, вход по `ADMIN_EMAIL` и `ADMIN_PASSWORD`. База
 | Сервис | Образ | Что делает |
 |---|---|---|
 | `server` | собирается из `Dockerfile` | API, SignalR и веб-панель; порт 5037 компьютера пробрасывается на порт 8080 контейнера |
-| `db` | `postgres:18-alpine` | база данных, наружу не открыта |
-| `redis` | `redis:7-alpine` | кеш и счётчик попыток входа, наружу не открыт |
+| `db` | `postgres:18-alpine` | база данных |
+| `redis` | `redis:7-alpine` | кеш и счётчик попыток входа |
 
 `Dockerfile` собирает образ в три этапа: сборка панели (Node.js), компиляция сервера (.NET SDK) и итоговый
 лёгкий образ только с готовым сервером. Настройки передаются переменными окружения (`ConnectionStrings__Postgres`,
 `ConnectionStrings__Redis`, `Jwt__Secret` и другие), а `Database__InitializeOnStartup=true` включает создание базы
 при старте вне режима разработки.
-
-| Команда | Что делает |
-|---|---|
-| `docker compose up -d --build` | собрать и запустить (после изменений в коде то же самое) |
-| `docker compose logs -f server` | логи сервера |
-| `docker compose ps` | состояние контейнеров |
-| `docker compose down` | остановить (данные остаются) |
-| `docker compose down -v` | остановить и **удалить базу** |
-
-В Docker Desktop все запросы с вашего компьютера приходят на сервер с одного адреса (шлюза Docker), поэтому лимит попыток
-входа (10 в минуту) общий для всех, кто заходит с этого компьютера.
-
-Если поменять `POSTGRES_PASSWORD` после первого запуска, в базе пароль не изменится (он задаётся только при создании
-тома): либо верните прежний, либо удалите том командой `docker compose down -v`.
 
 ## Запуск для разработки (без Docker)
 
