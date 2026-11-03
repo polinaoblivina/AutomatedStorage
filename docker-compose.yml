@@ -1,0 +1,47 @@
+services:
+  db:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: smartstorage
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - db-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d smartstorage"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  server:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "5037:8080"
+    environment:
+      ConnectionStrings__Postgres: Host=db;Port=5432;Database=smartstorage;Username=postgres;Password=${POSTGRES_PASSWORD}
+      ConnectionStrings__Redis: redis:6379
+      Jwt__Secret: ${JWT_SECRET}
+      Seed__AdminEmail: ${ADMIN_EMAIL}
+      Seed__AdminPassword: ${ADMIN_PASSWORD}
+      Devices__0__Name: ${DEVICE_NAME}
+      Devices__0__ApiKey: ${DEVICE_API_KEY}
+      Database__InitializeOnStartup: "true"
+
+volumes:
+  db-data:

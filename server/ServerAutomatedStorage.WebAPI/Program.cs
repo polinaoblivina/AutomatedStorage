@@ -45,7 +45,7 @@ builder.Services.AddHealthChecks().AddDbContextCheck<AppDbContext>();
 
 var app = builder.Build();
 
-if (app.Environment.IsDevelopment())
+if (app.Environment.IsDevelopment() || app.Configuration.GetValue<bool>("Database:InitializeOnStartup"))
     await app.Services.InitialiseDatabaseAsync();
 
 app.UseExceptionHandler();
