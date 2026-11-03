@@ -23,6 +23,7 @@ namespace ServerAutomatedStorage.WebAPI.Middleware
                 NotFoundException ex => Problem(StatusCodes.Status404NotFound, "Не найдено", ex.Message),
                 ConflictException ex => Problem(StatusCodes.Status409Conflict, "Конфликт", ex.Message),
                 UnauthorizedException ex => Problem(StatusCodes.Status401Unauthorized, "Не авторизован", ex.Message),
+                TooManyRequestsException ex => TooManyRequests(httpContext, ex),
                 DomainException ex => Problem(StatusCodes.Status400BadRequest, "Нарушение бизнес-правила", ex.Message),
                 DbUpdateConcurrencyException => Problem(StatusCodes.Status409Conflict, "Конфликт",
                     "Данные уже изменены другим запросом. Повторите действие."),
@@ -55,6 +56,12 @@ namespace ServerAutomatedStorage.WebAPI.Middleware
                 ProblemDetails = problem,
                 Exception = exception
             });
+        }
+
+        private static ProblemDetails TooManyRequests(HttpContext httpContext, TooManyRequestsException ex)
+        {
+            httpContext.Response.Headers.RetryAfter = ((int)Math.Ceiling(ex.RetryAfter.TotalSeconds)).ToString();
+            return Problem(StatusCodes.Status429TooManyRequests, "Слишком много запросов", ex.Message);
         }
 
         private static ProblemDetails Problem(int status, string title, string detail) =>

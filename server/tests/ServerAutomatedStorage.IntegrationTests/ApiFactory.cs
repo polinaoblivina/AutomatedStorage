@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
+using ServerAutomatedStorage.Application.Common.Interfaces;
 using ServerAutomatedStorage.Domain.Entities;
 using ServerAutomatedStorage.Domain.Enums;
 using ServerAutomatedStorage.Infrastructure.Identity;
@@ -14,6 +15,14 @@ using ServerAutomatedStorage.Infrastructure.Persistence;
 
 namespace ServerAutomatedStorage.IntegrationTests
 {
+    public sealed class SwitchableRateLimiter : IRateLimiter
+    {
+        public bool Deny { get; set; }
+
+        public Task<RateLimitResult> HitAsync(string key, int limit, TimeSpan window, CancellationToken cancellationToken)
+            => Task.FromResult(Deny ? new RateLimitResult(false, TimeSpan.FromSeconds(42)) : new RateLimitResult(true, TimeSpan.Zero));
+    }
+
     public sealed class ApiFactory : WebApplicationFactory<Program>
     {
         public const string DeviceName = "test-cabinet";
@@ -40,6 +49,9 @@ namespace ServerAutomatedStorage.IntegrationTests
             {
                 services.RemoveAll<DbContextOptions<AppDbContext>>();
                 services.RemoveAll<IDbContextOptionsConfiguration<AppDbContext>>();
+                services.RemoveAll<IRateLimiter>();
+                services.AddSingleton<SwitchableRateLimiter>();
+                services.AddSingleton<IRateLimiter>(sp => sp.GetRequiredService<SwitchableRateLimiter>());
                 _connection.Open();
                 services.AddDbContext<AppDbContext>(options => options.UseSqlite(_connection).AddInterceptors(new RowVersionInterceptor()).ReplaceService<IModelCustomizer, SqliteModelCustomizer>());
             });
