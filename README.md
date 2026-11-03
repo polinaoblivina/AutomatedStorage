@@ -27,13 +27,16 @@
 - Журнал операций с фильтрами и постраничным выводом; статистика для дашборда.
 - Мониторинг шкафов: онлайн/офлайн, исправность датчиков, текущий вес, лента событий — с обновлением
   в реальном времени через SignalR.
-- Вход по email и паролю: JWT на 15 минут + refresh-токен на 7 дней в HttpOnly-cookie с ротацией.
+- Вход по email и паролю: JWT на 15 минут + refresh-токен на 7 дней в HttpOnly-cookie с ротацией; не больше
+  10 попыток входа в минуту с одного адреса (счётчик в Redis).
+- Redis: кеш сводки на 30 секунд и ограничитель попыток входа. Redis необязателен: без него сервер работает
+  с кешем в памяти, а при его отказе берёт данные из базы.
 
 ## Структура репозитория
 
 | Папка | Что внутри | Технологии |
 |---|---|---|
-| `server/` | сервер и API | .NET 10, ASP.NET Core, EF Core, PostgreSQL, MediatR, FluentValidation, Identity, SignalR |
+| `server/` | сервер и API | .NET 10, ASP.NET Core, EF Core, PostgreSQL, Redis, MediatR, FluentValidation, Identity, SignalR |
 | `server/tests/` | модульные и интеграционные тесты | xUnit, NSubstitute, WebApplicationFactory |
 | `server/frontend/` | веб-панель кладовщика и администратора | React, TypeScript, Vite, Ant Design, SignalR |
 | `esp32/` | прошивка контроллера шкафа | ESP32 (Arduino), MFRC522, HX711, SSD1306 — см. [esp32/README.md](esp32/README.md) |
@@ -43,8 +46,8 @@
 | Проект | Ответственность |
 |---|---|
 | `ServerAutomatedStorage.Domain` | сущности и бизнес-правила (расчёт количества по весу, остатки, права ролей) |
-| `ServerAutomatedStorage.Application` | сценарии (команды и запросы MediatR), валидация, DTO |
-| `ServerAutomatedStorage.Infrastructure` | EF Core и PostgreSQL, репозитории, миграции, Identity, JWT, ключи устройств |
+| `ServerAutomatedStorage.Application` | сценарии (команды и запросы MediatR), валидация, DTO, поведение кеширования |
+| `ServerAutomatedStorage.Infrastructure` | EF Core и PostgreSQL, репозитории, миграции, Identity, JWT, ключи устройств, Redis (кеш и ограничитель частоты) |
 | `ServerAutomatedStorage.WebAPI` | контроллеры, SignalR-хаб, мониторинг устройств, обработка ошибок |
 
 Зависимости: `WebAPI → Infrastructure → Application → Domain`.
@@ -74,7 +77,8 @@
 
 ## Запуск для разработки
 
-Нужны: [.NET SDK 10](https://dotnet.microsoft.com/download), PostgreSQL (проверено на 18).
+Нужны: [.NET SDK 10](https://dotnet.microsoft.com/download), PostgreSQL (проверено на 18). Redis (в Docker) желателен,
+но не обязателен — см. раздел «Redis».
 
 ### 1. Секреты
 
@@ -150,25 +154,43 @@ dotnet ef migrations add ИмяМиграции --project server/ServerAutomated
 dotnet ef database update --project server/ServerAutomatedStorage.Infrastructure --startup-project server/ServerAutomatedStorage.WebAPI
 ```
 
+### 5. Redis
+
+Redis ускоряет сводку (`GET /api/statistics/dashboard` кешируется на 30 секунд) и считает попытки входа
+(10 в минуту с одного адреса, дальше `429` с заголовком `Retry-After`). Запустить его проще всего в Docker:
+
+```powershell
+docker run -d --name smartstorage-redis -p 6379:6379 redis:7-alpine
+```
+
+Адрес задаётся в `ConnectionStrings:Redis`; для разработки он уже прописан в
+`server/ServerAutomatedStorage.WebAPI/appsettings.Development.json` (`localhost:6379`).
+
+| Ситуация | Что происходит |
+|---|---|
+| Redis запущен | кеш и счётчик попыток в Redis |
+| `ConnectionStrings:Redis` не задан | кеш в памяти процесса, ограничитель отключён (так работают тесты) |
+| Строка задана, но Redis недоступен | сервер работает: данные берутся из базы, попытки входа не ограничиваются; каждый запрос примерно на секунду медленнее, в логе предупреждения |
+
 ## Тесты
 
 ```powershell
 dotnet test server/ServerAutomatedStorage.slnx
 ```
 
-База данных для тестов не нужна. Модульные тесты проверяют доменные правила (расчёт по весу, ротацию
-refresh-токенов), проверку карты и мониторинг устройств; интеграционные запускают сервер в памяти и
-проверяют защиту эндпоинтов и ключ устройства.
+База данных и Redis для тестов не нужны. Модульные тесты проверяют доменные правила (расчёт по весу, ротацию
+refresh-токенов), проверку карты, мониторинг устройств и поведение кеширования; интеграционные запускают сервер
+в памяти и проверяют защиту эндпоинтов, ключ устройства, ответ `429` на входе и кеш сводки.
 
 ## API
 
 | Группа | Эндпоинты | Доступ |
 |---|---|---|
-| Вход | `POST /api/auth/login`, `refresh`, `logout`; `GET /api/auth/me`; `POST /api/auth/change-password` | все / вошедший |
+| Вход | `POST /api/auth/login` (не больше 10 попыток в минуту с адреса, иначе `429`), `refresh`, `logout`; `GET /api/auth/me`; `POST /api/auth/change-password` | все / вошедший |
 | Шкафы и ячейки | `/api/cabinets`, `/api/cabinets/{id}/cells` | чтение — вошедший; изменение — `ManageSystem` |
 | Товары | `/api/items`, `.../move`, `.../replenish`, `.../adjust` | чтение — вошедший; изменение — `ManageStock` |
 | Сотрудники и роли | `/api/users`, `/api/roles` | `ManageUsers` |
-| Журнал и статистика | `GET /api/transactions`, `GET /api/statistics/dashboard` | `ViewJournal` |
+| Журнал и статистика | `GET /api/transactions`, `GET /api/statistics/dashboard` (кеш 30 секунд) | `ViewJournal` |
 | Мониторинг | `GET /api/devices`, `GET /api/devices/events`, SignalR `/hubs/devices` | `ViewJournal` |
 | Устройство (ESP32) | `POST /api/device/check-card`, `session`, `heartbeat` | заголовок `X-Device-Key` |
 
