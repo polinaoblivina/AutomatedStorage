@@ -9,6 +9,7 @@
  ┌──────────── Шкаф ────────────┐        HTTP + X-Device-Key       ┌──────────── Сервер ────────────┐
  │ ESP32                        │ ───────────────────────────────▶ │ ASP.NET Core Web API           │
  │  RC522 — RFID-карта          │   check-card, session, heartbeat │  ├─ PostgreSQL (EF Core)       │
+ │  ├─ Redis (кеш, лимит входа)  │
  │  HX711 — тензодатчик (вес)   │ ◀─────────────────────────────── │  ├─ JWT + refresh-токены       │
  │  реле — замок ячейки         │        доступ / результат        │  └─ SignalR /hubs/devices      │
  │  OLED, светодиоды            │                                  └───────────────┬────────────────┘
@@ -39,6 +40,7 @@
 | `server/` | сервер и API | .NET 10, ASP.NET Core, EF Core, PostgreSQL, Redis, MediatR, FluentValidation, Identity, SignalR |
 | `server/tests/` | модульные и интеграционные тесты | xUnit, NSubstitute, WebApplicationFactory |
 | `server/frontend/` | веб-панель кладовщика и администратора | React, TypeScript, Vite, Ant Design, SignalR |
+| `Dockerfile`, `docker-compose.yml`, `.env.example` | запуск всего проекта одной командой | Docker, Docker Compose |
 | `esp32/` | прошивка контроллера шкафа | ESP32 (Arduino), MFRC522, HX711, SSD1306 — см. [esp32/README.md](esp32/README.md) |
 
 Сервер построен по Clean Architecture:
@@ -75,10 +77,61 @@
 
 Права проверяются по базе на каждом запросе: отключение сотрудника или смена роли действуют сразу.
 
-## Запуск для разработки
+## Запуск в Docker
 
-Нужны: [.NET SDK 10](https://dotnet.microsoft.com/download), PostgreSQL (проверено на 18). Redis (в Docker) желателен,
-но не обязателен — см. раздел «Redis».
+Самый простой способ. Нужен только [Docker Desktop](https://www.docker.com/products/docker-desktop/): ни .NET, ни Node.js,
+ни PostgreSQL, ни Redis ставить не нужно. Сервер, веб-панель, PostgreSQL и Redis запускаются вместе.
+
+```powershell
+copy .env.example .env
+docker compose up -d --build
+```
+
+Перед запуском откройте `.env` и заполните значения (файл не попадает в git):
+
+| Переменная | Что это |
+|---|---|
+| `POSTGRES_PASSWORD` | пароль базы данных (задаётся при первом создании базы) |
+| `JWT_SECRET` | секрет подписи токенов, строка не короче 32 символов |
+| `ADMIN_EMAIL`, `ADMIN_PASSWORD` | первый администратор, создаётся при первом запуске |
+| `DEVICE_NAME`, `DEVICE_API_KEY` | имя шкафа и его ключ (тот же ключ указывается в `esp32/config.cpp`); как сгенерировать ключ, см. ниже в разделе про запуск для разработки |
+
+Первая сборка занимает несколько минут (скачиваются образы и пакеты), потом секунды. Панель открывается на
+http://localhost:5037, вход по `ADMIN_EMAIL` и `ADMIN_PASSWORD`. База создаётся и заполняется при старте сама;
+данные хранятся в томе `db-data` и переживают перезапуск контейнеров. ESP32 подключается к
+`http://<IP компьютера>:5037` с ключом `DEVICE_API_KEY`.
+
+Что запускается:
+
+| Сервис | Образ | Что делает |
+|---|---|---|
+| `server` | собирается из `Dockerfile` | API, SignalR и веб-панель; порт 5037 компьютера пробрасывается на порт 8080 контейнера |
+| `db` | `postgres:18-alpine` | база данных, наружу не открыта |
+| `redis` | `redis:7-alpine` | кеш и счётчик попыток входа, наружу не открыт |
+
+`Dockerfile` собирает образ в три этапа: сборка панели (Node.js), компиляция сервера (.NET SDK) и итоговый
+лёгкий образ только с готовым сервером. Настройки передаются переменными окружения (`ConnectionStrings__Postgres`,
+`ConnectionStrings__Redis`, `Jwt__Secret` и другие), а `Database__InitializeOnStartup=true` включает создание базы
+при старте вне режима разработки.
+
+| Команда | Что делает |
+|---|---|
+| `docker compose up -d --build` | собрать и запустить (после изменений в коде то же самое) |
+| `docker compose logs -f server` | логи сервера |
+| `docker compose ps` | состояние контейнеров |
+| `docker compose down` | остановить (данные остаются) |
+| `docker compose down -v` | остановить и **удалить базу** |
+
+В Docker Desktop все запросы с вашего компьютера приходят на сервер с одного адреса (шлюза Docker), поэтому лимит попыток
+входа (10 в минуту) общий для всех, кто заходит с этого компьютера.
+
+Если поменять `POSTGRES_PASSWORD` после первого запуска, в базе пароль не изменится (он задаётся только при создании
+тома): либо верните прежний, либо удалите том командой `docker compose down -v`.
+
+## Запуск для разработки (без Docker)
+
+Нужны: [.NET SDK 10](https://dotnet.microsoft.com/download), [Node.js](https://nodejs.org/) для веб-панели, PostgreSQL
+(проверено на 18). Redis желателен, но не обязателен: его можно запустить в Docker, см. раздел «Redis».
 
 ### 1. Секреты
 
@@ -157,7 +210,7 @@ dotnet ef database update --project server/ServerAutomatedStorage.Infrastructure
 ### 5. Redis
 
 Redis ускоряет сводку (`GET /api/statistics/dashboard` кешируется на 30 секунд) и считает попытки входа
-(10 в минуту с одного адреса, дальше `429` с заголовком `Retry-After`). Запустить его проще всего в Docker:
+(10 в минуту с одного адреса, дальше `429` с заголовком `Retry-After`). В `docker compose` он уже входит. Для запуска сервера без Docker Redis проще всего поднять отдельным контейнером:
 
 ```powershell
 docker run -d --name smartstorage-redis -p 6379:6379 redis:7-alpine
