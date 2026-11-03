@@ -12,8 +12,13 @@ namespace ServerAutomatedStorage.WebAPI.Controllers
 {
     [Authorize]
     [Route("api/auth")]
-    public sealed class AuthController(ICurrentUser currentUser, ILogger<AuthController> logger) : ApiControllerBase
+    public sealed class AuthController(
+        ICurrentUser currentUser,
+        IRateLimiter rateLimiter,
+        ILogger<AuthController> logger) : ApiControllerBase
     {
+        private const int LoginAttemptsPerWindow = 10;
+        private static readonly TimeSpan LoginWindow = TimeSpan.FromMinutes(1);
         private const string RefreshCookieName = "refresh_token";
         private const string RefreshCookiePath = "/api/auth";
 
@@ -22,8 +27,14 @@ namespace ServerAutomatedStorage.WebAPI.Controllers
         [ProducesResponseType<LoginResponse>(StatusCodes.Status200OK)]
         [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
         [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType<ProblemDetails>(StatusCodes.Status429TooManyRequests)]
         public async Task<ActionResult<LoginResponse>> Login(LoginCommand command, CancellationToken ct)
         {
+            var ip = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+            var limit = await rateLimiter.HitAsync($"login:{ip}", LoginAttemptsPerWindow, LoginWindow, ct);
+            if (!limit.Allowed)
+                throw new TooManyRequestsException("Слишком много попыток входа. Повторите позже.", limit.RetryAfter);
+
             var result = await Sender.Send(command, ct);
             SetRefreshCookie(result.RefreshToken);
             if (logger.IsEnabled(LogLevel.Information))

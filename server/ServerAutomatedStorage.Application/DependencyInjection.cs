@@ -16,6 +16,7 @@ namespace ServerAutomatedStorage.Application
                     cfg.RegisterServicesFromAssembly(assembly);
                     cfg.AddOpenBehavior(typeof(ValidationBehavior<,>));
                     cfg.AddOpenBehavior(typeof(LoggingBehavior<,>));
+                    cfg.AddOpenBehavior(typeof(CachingBehavior<,>));
                 });
             ValidatorOptions.Global.LanguageManager.Culture = new CultureInfo("ru");
             services.AddValidatorsFromAssembly(assembly);

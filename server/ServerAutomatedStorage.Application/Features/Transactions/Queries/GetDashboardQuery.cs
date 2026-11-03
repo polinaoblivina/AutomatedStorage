@@ -1,5 +1,6 @@
 ﻿using FluentValidation;
 using MediatR;
+using ServerAutomatedStorage.Application.Common.Interfaces;
 using ServerAutomatedStorage.Application.Features.Items.DTOs;
 using ServerAutomatedStorage.Application.Features.Transactions.DTOs;
 using ServerAutomatedStorage.Domain.Enums;
@@ -7,7 +8,11 @@ using ServerAutomatedStorage.Domain.Interfaces;
 
 namespace ServerAutomatedStorage.Application.Features.Transactions.Queries
 {
-    public sealed record GetDashboardQuery(int Days = 14, int TimezoneOffsetMinutes = 0) : IRequest<DashboardDTO>;
+    public sealed record GetDashboardQuery(int Days = 14, int TimezoneOffsetMinutes = 0) : IRequest<DashboardDTO>, ICacheableQuery
+    {
+        public string CacheKey => $"dashboard:{Days}:{TimezoneOffsetMinutes}";
+        public TimeSpan CacheDuration => TimeSpan.FromSeconds(30);
+    }
 
     public sealed class GetDashboardValidator : AbstractValidator<GetDashboardQuery>
     {

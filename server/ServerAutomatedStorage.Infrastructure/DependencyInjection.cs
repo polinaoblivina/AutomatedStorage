@@ -8,6 +8,9 @@ using ServerAutomatedStorage.Infrastructure.Authentication;
 using ServerAutomatedStorage.Infrastructure.Identity;
 using ServerAutomatedStorage.Infrastructure.Persistence;
 using ServerAutomatedStorage.Infrastructure.Persistence.Repositories;
+using Microsoft.Extensions.Caching.StackExchangeRedis;
+using ServerAutomatedStorage.Infrastructure.Caching;
+using StackExchange.Redis;
 
 namespace ServerAutomatedStorage.Infrastructure
 {
@@ -46,7 +49,33 @@ namespace ServerAutomatedStorage.Infrastructure
 
             services.AddScoped<IIdentityService, IdentityService>();
 
+            AddCaching(services, configuration);
+
             return services;
+        }
+
+        private static void AddCaching(IServiceCollection services, IConfiguration configuration)
+        {
+            var redisConnectionString = configuration.GetConnectionString("Redis");
+
+            if (string.IsNullOrWhiteSpace(redisConnectionString))
+            {
+                services.AddDistributedMemoryCache();
+                services.AddSingleton<IRateLimiter, NullRateLimiter>();
+                return;
+            }
+
+            var redisOptions = ConfigurationOptions.Parse(redisConnectionString);
+            redisOptions.AbortOnConnectFail = false;
+            redisOptions.ConnectTimeout = 1000;
+            redisOptions.SyncTimeout = 500;
+            redisOptions.AsyncTimeout = 500;
+
+            services.AddSingleton<IConnectionMultiplexer>(_ => ConnectionMultiplexer.Connect(redisOptions));
+            services.AddOptions<RedisCacheOptions>().Configure<IConnectionMultiplexer>((options, multiplexer) =>
+                options.ConnectionMultiplexerFactory = () => Task.FromResult(multiplexer));
+            services.AddStackExchangeRedisCache(_ => { });
+            services.AddSingleton<IRateLimiter, RedisRateLimiter>();
         }
     }
 }
