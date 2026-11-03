@@ -22,6 +22,7 @@ namespace ServerAutomatedStorage.UnitTests.Regression
             var services = new ServiceCollection();
             services.AddLogging();
             services.AddApplication();
+            services.AddDistributedMemoryCache();
             services.AddSingleton(Substitute.For<ICurrentUser>());
             services.AddSingleton(_items);
             services.AddSingleton(Substitute.For<ITransactionRepository>());
